@@ -9,7 +9,7 @@ class HomeScreen extends StatelessWidget {
       backgroundColor: Colors.white,
       body: const Center(
         child: Text(
-          'Bienvenue !',
+          'Bienvenue .....!',
           style: TextStyle(fontSize: 24),
         ),
       ),
