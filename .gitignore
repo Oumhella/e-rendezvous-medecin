@@ -1,0 +1,49 @@
+# Flutter/Dart
+.dart_tool/
+.build/
+.packages
+.pub/
+.pub-cache/
+flutter_*.png
+generated_plugin_registrant.*
+
+# Build outputs
+build/
+ios/Flutter/Flutter.framework
+ios/Flutter/Flutter.podspec
+ios/Flutter/Generated.xcconfig
+android/.gradle/
+android/app/build/
+**/gradle-wrapper.jar
+
+# Firebase keys
+lib/firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# IDE files
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# macOS
+*.DS_Store
+
+# Windows
+*.exe
+*.dll
+*.pdb
+
+# Linux
+*.so
+
+# Test outputs
+coverage/
+*.log
+
+# Environment files
+.env
+.env.local
+.env.*.local
