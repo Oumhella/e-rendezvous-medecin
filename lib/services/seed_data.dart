@@ -13,12 +13,12 @@ class SeedData {
 
   /// Main entry point – safe to call repeatedly.
   static Future<void> seedTestData() async {
-    // Check if already seeded
-    final metaDoc = await _db.collection('_meta').doc('seeded').get();
-    if (metaDoc.exists) {
-      debugPrint('✅ Test data already seeded — skipping.');
-      return;
-    }
+    // Check if already seeded - TEMPORAIREMENT DÉSACTIVÉ POUR RECÉRER
+    // final metaDoc = await _db.collection('_meta').doc('seeded').get();
+    // if (metaDoc.exists) {
+    //   debugPrint('✅ Test data already seeded — skipping.');
+    //   return;
+    // }
 
     debugPrint('🌱 Seeding test data…');
 
@@ -87,8 +87,40 @@ class SeedData {
       'codeSpecialite': 'MG',
     });
 
+    final specId2 = 'spec_02';
+    await _db.collection('specialite').doc(specId2).set({
+      'nom': 'Cardiologie',
+      'description': 'Spécialiste des maladies cardiovasculaires',
+      'codeSpecialite': 'CARDIO',
+    });
+
+    final specId3 = 'spec_03';
+    await _db.collection('specialite').doc(specId3).set({
+      'nom': 'Pédiatrie',
+      'description': 'Spécialiste des enfants et adolescents',
+      'codeSpecialite': 'PEDIA',
+    });
+
+    final specId4 = 'spec_04';
+    await _db.collection('specialite').doc(specId4).set({
+      'nom': 'Dermatologie',
+      'description': 'Spécialiste des maladies de la peau',
+      'codeSpecialite': 'DERMATO',
+    });
+
+    final specId5 = 'spec_05';
+    await _db.collection('specialite').doc(specId5).set({
+      'nom': 'Gynécologie',
+      'description': 'Spécialiste de la santé feminine',
+      'codeSpecialite': 'GYNECO',
+    });
+
     // ── 4. Secrétaire & Médecin ────────────────────────────────────
     final medId = 'med_01';
+    final medId2 = 'med_02';
+    final medId3 = 'med_03';
+    final medId4 = 'med_04';
+    final medId5 = 'med_05';
 
     await _db.collection('secretaire').doc('sec_01').set({
       'cin': 'BK123456',
@@ -115,6 +147,90 @@ class SeedData {
       'dateValidationCompte': Timestamp.now(),
       'utilisateur_id': medUserId,
       'specialite_id': specId,
+    });
+
+    // Médecin 2 - Cardiologue
+    await _db.collection('medecin').doc(medId2).set({
+      'cin': 'CD987654',
+      'numeroDordre': 'ORD-2024-002',
+      'adresseCabinet': '25 Boulevard Anfa, Casablanca',
+      'ville': 'Casablanca',
+      'statutMedecin': 'valide',
+      'cv': '',
+      'diplome': 'Doctorat en Cardiologie',
+      'certificatExercice': 'CE-2024-002',
+      'dureeConsultationMin': 45,
+      'tarifConsultation': 350.0,
+      'noteMoyenne': 4.8,
+      'biographie': 'Cardiologue spécialisé en maladies cardiovasculaires.',
+      'anneesExperience': 15,
+      'consultationEnLigne': true,
+      'dateValidationCompte': Timestamp.now(),
+      'utilisateur_id': medUserId,
+      'specialite_id': specId2,
+    });
+
+    // Médecin 3 - Pédiatre
+    await _db.collection('medecin').doc(medId3).set({
+      'cin': 'EF123456',
+      'numeroDordre': 'ORD-2024-003',
+      'adresseCabinet': '8 Rue des Jardins, Rabat',
+      'ville': 'Rabat',
+      'statutMedecin': 'valide',
+      'cv': '',
+      'diplome': 'Doctorat en Pédiatrie',
+      'certificatExercice': 'CE-2024-003',
+      'dureeConsultationMin': 25,
+      'tarifConsultation': 180.0,
+      'noteMoyenne': 4.6,
+      'biographie': 'Pédiatre expérimenté pour les enfants de 0 à 18 ans.',
+      'anneesExperience': 12,
+      'consultationEnLigne': false,
+      'dateValidationCompte': Timestamp.now(),
+      'utilisateur_id': medUserId,
+      'specialite_id': specId3,
+    });
+
+    // Médecin 4 - Dermatologue
+    await _db.collection('medecin').doc(medId4).set({
+      'cin': 'GH789012',
+      'numeroDordre': 'ORD-2024-004',
+      'adresseCabinet': '15 Avenue Hassan II, Marrakech',
+      'ville': 'Marrakech',
+      'statutMedecin': 'valide',
+      'cv': '',
+      'diplome': 'Doctorat en Dermatologie',
+      'certificatExercice': 'CE-2024-004',
+      'dureeConsultationMin': 30,
+      'tarifConsultation': 250.0,
+      'noteMoyenne': 4.4,
+      'biographie': 'Dermatologue spécialisé en dermatologie esthétique.',
+      'anneesExperience': 8,
+      'consultationEnLigne': true,
+      'dateValidationCompte': Timestamp.now(),
+      'utilisateur_id': medUserId,
+      'specialite_id': specId4,
+    });
+
+    // Médecin 5 - Gynécologue
+    await _db.collection('medecin').doc(medId5).set({
+      'cin': 'IJ345678',
+      'numeroDordre': 'ORD-2024-005',
+      'adresseCabinet': '5 Rue Moulay Youssef, Fès',
+      'ville': 'Fès',
+      'statutMedecin': 'valide',
+      'cv': '',
+      'diplome': 'Doctorat en Gynécologie',
+      'certificatExercice': 'CE-2024-005',
+      'dureeConsultationMin': 40,
+      'tarifConsultation': 300.0,
+      'noteMoyenne': 4.7,
+      'biographie': 'Gynécologue-obstétricien avec expertise en suivi grossesse.',
+      'anneesExperience': 20,
+      'consultationEnLigne': true,
+      'dateValidationCompte': Timestamp.now(),
+      'utilisateur_id': medUserId,
+      'specialite_id': specId5,
     });
 
     // ── 6. Patients ────────────────────────────────────────────────
