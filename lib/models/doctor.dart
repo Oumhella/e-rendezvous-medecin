@@ -49,7 +49,6 @@ class Doctor {
 
   String get fullName => 'Dr. $prenom $nom';
   String get noteText => '${noteMoyenne.toStringAsFixed(1)}';
-  String get tarifText => '${dureConsultationMin * 2}€'; // Estimation basée sur la durée
   String get experienceText => '$anneesExperience ans d\'expérience';
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
