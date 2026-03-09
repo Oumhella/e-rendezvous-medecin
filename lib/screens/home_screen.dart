@@ -36,9 +36,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _initializeAnimations();
-    _initializeData();
-    _loadDoctors();
+    _initializeApp();
     _searchController.addListener(_onSearchChanged);
+  }
+
+  Future<void> _initializeApp() async {
+    // D'abord initialiser les données, puis charger les médecins
+    await _initializeData();
+    await _loadDoctors();
   }
 
   Future<void> _initializeData() async {
