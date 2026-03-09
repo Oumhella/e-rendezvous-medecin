@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'screens/auth/splash_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -25,12 +26,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'E-Rendez-vous Médecin',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF5BC4BF),
-        ),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.theme,
       home: const SplashScreen(),
     );
   }

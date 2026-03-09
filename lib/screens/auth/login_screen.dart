@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import 'register_screen.dart';
 
@@ -10,11 +11,11 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController = TextEditingController();
+  final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService = AuthService();
-  bool _isLoading = false;
-  bool _obscurePassword = true;
+  final _authService        = AuthService();
+  bool _isLoading           = false;
+  bool _obscurePassword     = true;
 
   @override
   void dispose() {
@@ -28,163 +29,200 @@ class _LoginScreenState extends State<LoginScreen> {
       _showError('Veuillez remplir tous les champs.');
       return;
     }
-
     setState(() => _isLoading = true);
-
     final error = await _authService.login(
       email: _emailController.text.trim(),
       password: _passwordController.text,
     );
-
     setState(() => _isLoading = false);
-
-    if (error != null && mounted) {
-      _showError(error);
-    }
-    // Si succès, le StreamBuilder dans SplashScreen redirige automatiquement
+    if (error != null && mounted) _showError(error);
   }
 
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.redAccent,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 40),
-
-              // Logo / Titre
-              const Text(
-                'CliniQ',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A3C5E),
+      backgroundColor: AppColors.offWhite,
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            // ── Header gradient avec logo ──
+            Container(
+              width: double.infinity,
+              height: 260,
+              decoration: const BoxDecoration(
+                gradient: AppColors.gradient,
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(40),
+                  bottomRight: Radius.circular(40),
                 ),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Connectez-vous à votre compte',
-                style: TextStyle(color: Colors.grey, fontSize: 16),
-              ),
-              const SizedBox(height: 48),
-
-              // Email
-              _buildLabel('Email'),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _emailController,
-                hint: 'exemple@email.com',
-                icon: Icons.email_outlined,
-                keyboardType: TextInputType.emailAddress,
-              ),
-              const SizedBox(height: 20),
-
-              // Mot de passe
-              _buildLabel('Mot de passe'),
-              const SizedBox(height: 8),
-              _buildTextField(
-                controller: _passwordController,
-                hint: '••••••••',
-                icon: Icons.lock_outline,
-                obscureText: _obscurePassword,
-                suffixIcon: IconButton(
-                  icon: Icon(
-                    _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                    color: Colors.grey,
-                  ),
-                  onPressed: () =>
-                      setState(() => _obscurePassword = !_obscurePassword),
+              child: SafeArea(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image(
+                      image: const AssetImage('assets/images/logo.png'),
+                      width: 90,
+                      height: 90,
+                      errorBuilder: (_, __, ___) => const Icon(
+                        Icons.local_hospital,
+                        size: 70,
+                        color: AppColors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'E-Rendez-vous',
+                      style: TextStyle(
+                        color: AppColors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                    const Text(
+                      'Médecin',
+                      style: TextStyle(
+                        color: AppColors.lightBlue,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
+            ),
 
-              // Mot de passe oublié
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: _showResetDialog,
-                  child: const Text(
-                    'Mot de passe oublié ?',
-                    style: TextStyle(color: Color(0xFF5BC4BF)),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 32),
-
-              // Bouton connexion
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A3C5E),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+            // ── Formulaire ──
+            Padding(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 16),
+                  const Text(
+                    'Connexion',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.navyDark,
                     ),
                   ),
-                  onPressed: _isLoading ? null : _login,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          'Se connecter',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Lien inscription
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+                  const SizedBox(height: 6),
                   const Text(
-                    "Pas encore de compte ? ",
+                    'Connectez-vous à votre compte',
                     style: TextStyle(color: Colors.grey),
                   ),
-                  GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const RegisterScreen()),
+                  const SizedBox(height: 28),
+
+                  // Email
+                  _buildTextField(
+                    controller: _emailController,
+                    hint: 'Email',
+                    icon: Icons.email_outlined,
+                    keyboardType: TextInputType.emailAddress,
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Mot de passe
+                  _buildTextField(
+                    controller: _passwordController,
+                    hint: 'Mot de passe',
+                    icon: Icons.lock_outline,
+                    obscureText: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: AppColors.navyDark,
+                      ),
+                      onPressed: () =>
+                          setState(() => _obscurePassword = !_obscurePassword),
                     ),
-                    child: const Text(
-                      "S'inscrire",
-                      style: TextStyle(
-                        color: Color(0xFF5BC4BF),
-                        fontWeight: FontWeight.bold,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Mot de passe oublié
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: _showResetDialog,
+                      child: const Text(
+                        'Mot de passe oublié ?',
+                        style: TextStyle(color: AppColors.navyDark),
                       ),
                     ),
                   ),
+                  const SizedBox(height: 24),
+
+                  // Bouton connexion
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.gradient,
+                        borderRadius: BorderRadius.all(Radius.circular(16)),
+                      ),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _isLoading ? null : _login,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: AppColors.white)
+                            : const Text(
+                                'Se connecter',
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Lien inscription
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Text("Pas encore de compte ? ",
+                          style: TextStyle(color: Colors.grey)),
+                      GestureDetector(
+                        onTap: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) => const RegisterScreen()),
+                        ),
+                        child: const Text(
+                          "S'inscrire",
+                          style: TextStyle(
+                            color: AppColors.navyDark,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
-    );
-  }
-
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
     );
   }
 
@@ -203,17 +241,18 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: const Color(0xFF5BC4BF)),
+        prefixIcon: Icon(icon, color: AppColors.navyDark),
         suffixIcon: suffixIcon,
         filled: true,
-        fillColor: Colors.grey[100],
+        fillColor: AppColors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF5BC4BF), width: 2),
+          borderSide:
+              const BorderSide(color: AppColors.navyDark, width: 2),
         ),
       ),
     );
@@ -224,7 +263,8 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Réinitialiser le mot de passe'),
+        title: const Text('Réinitialiser le mot de passe',
+            style: TextStyle(color: AppColors.navyDark)),
         content: TextField(
           controller: emailController,
           decoration: const InputDecoration(hintText: 'Votre email'),
@@ -233,27 +273,28 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler'),
+            child: const Text('Annuler',
+                style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF5BC4BF),
-            ),
+                backgroundColor: AppColors.navyDark),
             onPressed: () async {
-              final error = await _authService.resetPassword(
-                emailController.text.trim(),
-              );
+              final error = await _authService
+                  .resetPassword(emailController.text.trim());
               if (mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(error ?? '📧 Email envoyé ! Vérifiez votre boîte.'),
-                    backgroundColor: error != null ? Colors.red : const Color(0xFF5BC4BF),
-                  ),
-                );
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(
+                      error ?? '📧 Email envoyé ! Vérifiez votre boîte.'),
+                  backgroundColor: error != null
+                      ? Colors.red
+                      : AppColors.navyDark,
+                ));
               }
             },
-            child: const Text('Envoyer', style: TextStyle(color: Colors.white)),
+            child: const Text('Envoyer',
+                style: TextStyle(color: AppColors.white)),
           ),
         ],
       ),

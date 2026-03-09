@@ -1,5 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -15,8 +17,13 @@ class AuthService {
   Future<String?> register({
     required String email,
     required String password,
-    required String fullName,
-    required String phone,
+    required String nom,
+    required String prenom,
+    required String telephone,
+    required String adresse,
+    required String cin,
+    required DateTime dateNaissance,
+    required String numeroSecuriteSociale,
   }) async {
     try {
       // Créer le compte Firebase Auth
@@ -25,12 +32,34 @@ class AuthService {
         password: password,
       );
 
-      // Sauvegarder les infos du patient dans Firestore
-      await _db.collection('patients').doc(credential.user!.uid).set({
-        'fullName': fullName,
+      final userId = credential.user!.uid;
+
+      // Crypter le mot de passe avec SHA-256
+      final bytes = utf8.encode(password);
+      final digest = sha256.convert(bytes);
+      final hashedPassword = digest.toString();
+
+      // Sauvegarder dans collection utilisateur
+      await _db.collection('utilisateur').doc(userId).set({
+        'idU': userId,
+        'nom': nom,
+        'prenom': prenom,
         'email': email,
-        'phone': phone,
-        'createdAt': FieldValue.serverTimestamp(),
+        'telephone': telephone,
+        'password': hashedPassword, // Mot de passe crypté
+
+        'dateInscription': FieldValue.serverTimestamp(),
+        'statut': 'actif',
+        'photoProfil': '',
+      });
+
+      // Sauvegarder dans collection patient
+      await _db.collection('patient').doc(userId).set({
+        'actif': false,
+        'adresse': adresse,
+        'cin': cin,
+        'dateNaissance': Timestamp.fromDate(dateNaissance),
+        'numeroSecuriteSociale': numeroSecuriteSociale,
       });
 
       return null; // null = succès

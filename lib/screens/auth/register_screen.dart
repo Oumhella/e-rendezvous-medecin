@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -9,41 +10,56 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
-  final _authService = AuthService();
-  bool _isLoading = false;
-  bool _obscurePassword = true;
+  final _nomController        = TextEditingController();
+  final _prenomController      = TextEditingController();
+  final _emailController       = TextEditingController();
+  final _telephoneController   = TextEditingController();
+  final _adresseController     = TextEditingController();
+  final _cinController         = TextEditingController();
+  final _dateNaissanceController = TextEditingController();
+  final _secuController        = TextEditingController();
+  final _passwordController    = TextEditingController();
+  final _confirmController     = TextEditingController();
+  final _authService           = AuthService();
+  bool _isLoading              = false;
+  bool _obscurePassword        = true;
+  DateTime? _selectedDate;
 
   Future<void> _register() async {
     if (_passwordController.text != _confirmController.text) {
       _showError('Les mots de passe ne correspondent pas.');
       return;
     }
-    if (_nameController.text.isEmpty ||
+    if (_nomController.text.isEmpty ||
+        _prenomController.text.isEmpty ||
         _emailController.text.isEmpty ||
+        _telephoneController.text.isEmpty ||
+        _adresseController.text.isEmpty ||
+        _cinController.text.isEmpty ||
+        _dateNaissanceController.text.isEmpty ||
+        _secuController.text.isEmpty ||
         _passwordController.text.isEmpty) {
       _showError('Veuillez remplir tous les champs.');
       return;
     }
-
+    if (_selectedDate == null) {
+      _showError('Veuillez sélectionner une date de naissance.');
+      return;
+    }
     setState(() => _isLoading = true);
-
     final error = await _authService.register(
       email: _emailController.text.trim(),
       password: _passwordController.text,
-      fullName: _nameController.text.trim(),
-      phone: _phoneController.text.trim(),
+      nom: _nomController.text.trim(),
+      prenom: _prenomController.text.trim(),
+      telephone: _telephoneController.text.trim(),
+      adresse: _adresseController.text.trim(),
+      cin: _cinController.text.trim(),
+      dateNaissance: _selectedDate!,
+      numeroSecuriteSociale: _secuController.text.trim(),
     );
-
     setState(() => _isLoading = false);
-
-    if (error != null && mounted) {
-      _showError(error);
-    }
+    if (error != null && mounted) _showError(error);
   }
 
   void _showError(String message) {
@@ -55,80 +71,163 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1A3C5E)),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Créer un compte',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1A3C5E),
-                ),
+      backgroundColor: AppColors.offWhite,
+      body: Column(
+        children: [
+          // ── Header gradient ──
+          Container(
+            width: double.infinity,
+            height: 180,
+            decoration: const BoxDecoration(
+              gradient: AppColors.gradient,
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(40),
+                bottomRight: Radius.circular(40),
               ),
-              const SizedBox(height: 8),
-              const Text(
-                'Rejoignez CliniQ dès maintenant',
-                style: TextStyle(color: Colors.grey),
-              ),
-              const SizedBox(height: 32),
-
-              _buildField(_nameController, 'Nom complet', Icons.person_outline),
-              const SizedBox(height: 16),
-              _buildField(_emailController, 'Email', Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress),
-              const SizedBox(height: 16),
-              _buildField(_phoneController, 'Téléphone', Icons.phone_outlined,
-                  keyboardType: TextInputType.phone),
-              const SizedBox(height: 16),
-              _buildField(_passwordController, 'Mot de passe', Icons.lock_outline,
-                  obscure: true),
-              const SizedBox(height: 16),
-              _buildField(_confirmController, 'Confirmer mot de passe',
-                  Icons.lock_outline,
-                  obscure: true),
-              const SizedBox(height: 32),
-
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1A3C5E),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back,
+                            color: AppColors.white),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ],
+                  ),
+                  const Text(
+                    'Créer un compte',
+                    style: TextStyle(
+                      color: AppColors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  onPressed: _isLoading ? null : _register,
-                  child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text(
-                          "S'inscrire",
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
+                  const Text(
+                    'Rejoignez-nous dès maintenant',
+                    style: TextStyle(color: AppColors.lightBlue, fontSize: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Formulaire ──
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(28),
+              child: Column(
+                children: [
+                  const SizedBox(height: 16),
+                  _buildField(_nomController, 'Nom', Icons.person_outline),
+                  const SizedBox(height: 16),
+                  _buildField(_prenomController, 'Prénom', Icons.person_outline),
+                  const SizedBox(height: 16),
+                  _buildField(_emailController, 'Email', Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress),
+                  const SizedBox(height: 16),
+                  _buildField(_telephoneController, 'Téléphone', Icons.phone_outlined,
+                      keyboardType: TextInputType.phone),
+                  const SizedBox(height: 16),
+                  _buildField(_adresseController, 'Adresse', Icons.home_outlined),
+                  const SizedBox(height: 16),
+                  _buildField(_cinController, 'CIN', Icons.credit_card_outlined),
+                  const SizedBox(height: 16),
+                  _buildDateField(),
+                  const SizedBox(height: 16),
+                  _buildField(_secuController, 'N° Sécurité Sociale', Icons.security_outlined),
+                  const SizedBox(height: 16),
+                  _buildField(_passwordController, 'Mot de passe', Icons.lock_outline,
+                      obscure: true),
+                  const SizedBox(height: 16),
+                  _buildField(_confirmController, 'Confirmer mot de passe', Icons.lock_outline,
+                      obscure: true),
+                  const SizedBox(height: 32),
+
+                  // Bouton
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: DecoratedBox(
+                      decoration: const BoxDecoration(
+                        gradient: AppColors.gradient,
+                        borderRadius:
+                            BorderRadius.all(Radius.circular(16)),
+                      ),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
-                ),
+                        onPressed: _isLoading ? null : _register,
+                        child: _isLoading
+                            ? const CircularProgressIndicator(
+                                color: AppColors.white)
+                            : const Text(
+                                "S'inscrire",
+                                style: TextStyle(
+                                  color: AppColors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDateField() {
+    return TextField(
+      controller: _dateNaissanceController,
+      readOnly: true,
+      decoration: InputDecoration(
+        hintText: 'Date de naissance',
+        hintStyle: const TextStyle(color: Colors.grey),
+        prefixIcon: const Icon(Icons.calendar_today_outlined, color: AppColors.navyDark),
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.calendar_today, color: AppColors.navyDark),
+          onPressed: _selectDate,
+        ),
+        filled: true,
+        fillColor: AppColors.white,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.navyDark, width: 2),
         ),
       ),
     );
+  }
+
+  Future<void> _selectDate() async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate ?? DateTime.now().subtract(const Duration(days: 365 * 18)),
+      firstDate: DateTime.now().subtract(const Duration(days: 365 * 120)),
+      lastDate: DateTime.now().subtract(const Duration(days: 365 * 13)),
+    );
+    if (picked != null && picked != _selectedDate) {
+      setState(() {
+        _selectedDate = picked;
+        _dateNaissanceController.text = '${picked.day.toString().padLeft(2, '0')}/${picked.month.toString().padLeft(2, '0')}/${picked.year}';
+      });
+    }
   }
 
   Widget _buildField(
@@ -145,16 +244,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: const Color(0xFF5BC4BF)),
+        prefixIcon: Icon(icon, color: AppColors.navyDark),
         filled: true,
-        fillColor: Colors.grey[100],
+        fillColor: AppColors.white,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF5BC4BF), width: 2),
+          borderSide: const BorderSide(color: AppColors.navyDark, width: 2),
         ),
       ),
     );

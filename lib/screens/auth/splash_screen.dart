@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../theme/app_theme.dart';
 import 'login_screen.dart';
 import '../home_screen.dart';
 
@@ -11,22 +12,41 @@ class SplashScreen extends StatelessWidget {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
-        // Chargement
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Scaffold(
-            backgroundColor: Color(0xFF5BC4BF),
-            body: Center(
-              child: CircularProgressIndicator(color: Colors.white),
+          return Scaffold(
+            body: Container(
+              decoration: const BoxDecoration(
+                gradient: AppColors.gradient,
+              ),
+              child: const Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Logo
+                    Image(
+                      image: AssetImage('assets/images/logo.png'),
+                      width: 120,
+                      height: 120,
+                      errorBuilder: _logoFallback,
+                    ),
+                    SizedBox(height: 24),
+                    CircularProgressIndicator(color: AppColors.white),
+                  ],
+                ),
+              ),
             ),
           );
         }
-        // Connecté → Home
         if (snapshot.hasData) {
           return const HomeScreen();
         }
-        // Non connecté → Login
         return const LoginScreen();
       },
     );
+  }
+
+  static Widget _logoFallback(
+      BuildContext context, Object error, StackTrace? stack) {
+    return const Icon(Icons.local_hospital, size: 80, color: AppColors.white);
   }
 }
