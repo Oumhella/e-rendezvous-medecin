@@ -51,6 +51,16 @@ class Doctor {
   String get noteText => '${noteMoyenne.toStringAsFixed(1)}';
   String get experienceText => '$anneesExperience ans d\'expérience';
 
+  String get initials {
+    String p = prenom.trim();
+    String n = nom.trim();
+    String res = '';
+    if (p.isNotEmpty) res += p[0];
+    if (n.isNotEmpty) res += n[0];
+    if (res.isEmpty) res = 'DR';
+    return res.toUpperCase();
+  }
+
   factory Doctor.fromJson(Map<String, dynamic> json) {
     // Gérer le cas où specialite_id est une DocumentReference
     String specialite = 'Généraliste';

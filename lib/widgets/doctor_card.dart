@@ -52,7 +52,7 @@ class DoctorCard extends StatelessWidget {
                               fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Text(
-                                  doctor.prenom[0] + doctor.nom[0],
+                                  doctor.initials,
                                   style: TextStyle(
                                     color: AppColors.navyDark,
                                     fontWeight: FontWeight.bold,
@@ -63,7 +63,7 @@ class DoctorCard extends StatelessWidget {
                             ),
                           )
                         : Text(
-                            doctor.prenom[0] + doctor.nom[0],
+                            doctor.initials,
                             style: TextStyle(
                               color: AppColors.navyDark,
                               fontWeight: FontWeight.bold,
@@ -111,18 +111,11 @@ class DoctorCard extends StatelessWidget {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Icon(
-                    Icons.star,
-                    color: Colors.amber[400],
-                    size: 16,
-                  ),
+                  Icon(Icons.star, color: Colors.amber[400], size: 16),
                   const SizedBox(width: 4),
                   Text(
                     doctor.noteText,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const Spacer(),
                   Icon(
@@ -133,10 +126,7 @@ class DoctorCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     '${doctor.ville} — ${doctor.distanceText}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey,
-                    ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                 ],
               ),
@@ -276,10 +266,7 @@ class DoctorCard extends StatelessWidget {
                   ),
                   child: const Text(
                     'Prendre RDV',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
