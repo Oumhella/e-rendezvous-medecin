@@ -67,11 +67,11 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
 
-      // ── FLUX PATIENT / MEDECIN (à implémenter) ──
+      // ── FLUX PATIENT / MEDECIN ──
       // Si on arrive ici, l'utilisateur n'est pas une secrétaire.
-      // throw Exception('Ce compte n\'a pas les droits nécessaires pour se connecter ici.');
-      // Temporairement, on redirige vers le home si ce n'est pas une secrétaire.
-      
+      if (mounted) {
+        Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+      }
     } catch (e) {
       if (mounted) _showError(e.toString().replaceAll('Exception: ', ''));
       await _authService.logout();

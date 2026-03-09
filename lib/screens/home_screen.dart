@@ -8,6 +8,10 @@ import '../theme/app_theme.dart';
 import '../widgets/doctor_card.dart';
 import '../widgets/filter_bottom_sheet.dart';
 import '../widgets/common_widgets.dart' as common;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'doctor_details_screen.dart';
+import 'reservation_screen.dart';
+import 'patient_appointments_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -157,17 +161,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   void _onDoctorTapped(Doctor doctor) {
-    showDialog(
-      context: context,
-      builder: (context) => common.LoginPromptDialog(),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => DoctorDetailsScreen(doctor: doctor),
+      ),
     );
   }
 
   void _onAppointmentRequested(Doctor doctor) {
-    showDialog(
-      context: context,
-      builder: (context) => common.LoginPromptDialog(),
-    );
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      showDialog(
+        context: context,
+        builder: (context) => common.LoginPromptDialog(),
+      );
+    } else {
+      _onDoctorTapped(doctor);
+    }
   }
 
   void _onSpecialitySelected(String speciality) {
@@ -326,116 +337,205 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   ),
                 ),
                 // Boutons d'action modernes
-                Row(
-                  children: [
-                    // Bouton connexion premium
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: AppColors.gradient,
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.navyDark.withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/login');
-                        },
-                        icon: const Icon(
-                          Icons.login,
-                          size: 18,
-                          color: Colors.white,
-                        ),
-                        label: const Text(
-                          'Connexion',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w700,
-                            fontSize: 14,
-                          ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.transparent,
-                          shadowColor: Colors.transparent,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    // Notifications avec badge
-                    Stack(
-                      children: [
+                StreamBuilder<User?>(
+                  stream: FirebaseAuth.instance.authStateChanges(),
+                  builder: (context, snapshot) {
+                    final user = snapshot.data;
+                    
+                    if (user == null) {
+                      return // Bouton connexion premium
                         Container(
-                          padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(15),
-                            border: Border.all(
-                              color: AppColors.navyDark.withOpacity(0.1),
-                            ),
+                            gradient: AppColors.gradient,
+                            borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.08),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
+                                color: AppColors.navyDark.withOpacity(0.3),
+                                blurRadius: 15,
+                                offset: const Offset(0, 6),
                               ),
                             ],
                           ),
-                          child: const Icon(
-                            Icons.notifications_outlined,
-                            color: AppColors.navyDark,
-                            size: 22,
-                          ),
-                        ),
-                        Positioned(
-                          right: 10,
-                          top: 10,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
+                          child: ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.pushNamed(context, '/login');
+                            },
+                            icon: const Icon(
+                              Icons.login,
+                              size: 18,
+                              color: Colors.white,
+                            ),
+                            label: const Text(
+                              'Connexion',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 14,
+                              ),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              shadowColor: Colors.transparent,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(width: 8),
-                    // Profil
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(15),
-                        border: Border.all(
-                          color: AppColors.navyDark.withOpacity(0.1),
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.08),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                        );
+                    } else {
+                      return Row(
+                        children: [
+                          // Notifications avec badge
+                          Stack(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(15),
+                                  border: Border.all(
+                                    color: AppColors.navyDark.withOpacity(0.1),
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.08),
+                                      blurRadius: 10,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.notifications_outlined,
+                                  color: AppColors.navyDark,
+                                  size: 22,
+                                ),
+                              ),
+                              Positioned(
+                                right: 10,
+                                top: 10,
+                                child: Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 8),
+                          // Profil Menu
+                          Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(15),
+                              border: Border.all(
+                                color: AppColors.navyDark.withOpacity(0.1),
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withOpacity(0.08),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: PopupMenuButton<String>(
+                              offset: const Offset(0, 50),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Padding(
+                                padding: EdgeInsets.all(12),
+                                child: Icon(
+                                  Icons.person_outline,
+                                  color: AppColors.navyDark,
+                                  size: 22,
+                                ),
+                              ),
+                              itemBuilder: (context) => [
+                                PopupMenuItem(
+                                  enabled: false,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        user.displayName ?? 'Utilisateur',
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black87,
+                                        ),
+                                      ),
+                                      Text(
+                                        user.email ?? '',
+                                        style: const TextStyle(
+                                          color: Colors.grey,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                      const Divider(),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'profil',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.person, color: AppColors.navyDark, size: 20),
+                                      SizedBox(width: 12),
+                                      Text('Mon profil'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'rdv',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.calendar_today, color: AppColors.navyDark, size: 20),
+                                      SizedBox(width: 12),
+                                      Text('Mes rendez-vous'),
+                                    ],
+                                  ),
+                                ),
+                                const PopupMenuItem(
+                                  value: 'logout',
+                                  child: Row(
+                                    children: [
+                                      Icon(Icons.logout, color: Colors.red, size: 20),
+                                      SizedBox(width: 12),
+                                      Text('Déconnexion', style: TextStyle(color: Colors.red)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              onSelected: (value) async {
+                                if (value == 'logout') {
+                                  await FirebaseAuth.instance.signOut();
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Déconnexion réussie')),
+                                    );
+                                  }
+                                } else if (value == 'profil') {
+                                  // Naviguer vers profil
+                                } else if (value == 'rdv') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const PatientAppointmentsScreen()),
+                                  );
+                                }
+                              },
+                            ),
                           ),
                         ],
-                      ),
-                      child: const Icon(
-                        Icons.person_outline,
-                        color: AppColors.navyDark,
-                        size: 22,
-                      ),
-                    ),
-                  ],
+                      );
+                    }
+                  },
                 ),
               ],
             ),
@@ -1685,10 +1785,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 label: 'Mes RDV',
                 isActive: false,
                 onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => common.LoginPromptDialog(),
-                  );
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user == null) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => common.LoginPromptDialog(),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const PatientAppointmentsScreen()),
+                    );
+                  }
                 },
               ),
               _buildNavItem(

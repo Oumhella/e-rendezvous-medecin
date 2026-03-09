@@ -26,12 +26,74 @@ class DoctorService {
 
       print('Documents récupérés sans filtre: ${querySnapshot.docs.length}');
       
-      List<Doctor> doctors = querySnapshot.docs.map((doc) {
+      List<Doctor> doctors = [];
+      for (var doc in querySnapshot.docs) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-        print('Données brutes: $data');
         data['id'] = doc.id; // Ajouter l'ID du document
-        return Doctor.fromJson(data);
-      }).toList();
+        
+        // Ignore the doctors without a linked user ID
+        if (!data.containsKey('utilisateur_id') || data['utilisateur_id'] == null || data['utilisateur_id'].toString().isEmpty) {
+          continue;
+        }
+
+        // Fetch user data
+        if (data.containsKey('utilisateur_id') && data['utilisateur_id'] != null) {
+          try {
+            var userDoc = await _db.collection('utilisateur').doc(data['utilisateur_id']).get();
+            if (userDoc.exists && userDoc.data() != null) {
+              var userData = userDoc.data()!;
+              data['nom'] = userData['nom'];
+              data['prenom'] = userData['prenom'];
+              data['telephone'] = userData['telephone'];
+            }
+          } catch (e) {
+            print('Erreur récupération utilisateur pour medecin ${doc.id}: $e');
+          }
+        }
+        
+        // Fetch specialite
+        if (data.containsKey('specialite_id') && data['specialite_id'] != null) {
+          try {
+            var specDoc = await _db.collection('specialite').doc(data['specialite_id']).get();
+            if (specDoc.exists && specDoc.data() != null) {
+              data['specialite'] = specDoc.data()!['nom'];
+            }
+          } catch (e) {
+            print('Erreur récupération spécialité pour medecin ${doc.id}: $e');
+          }
+        }
+        
+        // Fetch disponibilités depuis les créneaux
+        try {
+          final today = DateTime.now();
+          final startOfToday = Timestamp.fromDate(DateTime(today.year, today.month, today.day));
+          
+          final creneauxQuery = await _db.collection('creneaux')
+              .where('medecin_id', isEqualTo: doc.id)
+              .where('dateJour', isGreaterThanOrEqualTo: startOfToday)
+              .where('disponible', isEqualTo: true)
+              .orderBy('dateJour')
+              .orderBy('heureDebut')
+              .get();
+              
+          if (creneauxQuery.docs.isNotEmpty) {
+            List<String> dispos = [];
+            for (var cDoc in creneauxQuery.docs) {
+              dispos.add(cDoc.data()['heureDebut'] as String);
+            }
+            data['disponibilites'] = dispos.toSet().toList(); // Supprimer les doublons éventuels
+            data['actif'] = true;
+          } else {
+            data['disponibilites'] = <String>[];
+            data['actif'] = false;
+          }
+        } catch (e) {
+          print('Erreur récupération créneaux pour medecin ${doc.id}: $e');
+        }
+
+        print('Données enrichies pour medecin: $data');
+        doctors.add(Doctor.fromJson(data));
+      }
 
       print('Médecins convertis: ${doctors.length}');
 
