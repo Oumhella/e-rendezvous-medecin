@@ -10,7 +10,7 @@ class DoctorService {
     String? disponibilite,
     String? typeConsultation,
     String? secteur,
-    String? tarifRange,
+    String? tarifConsultation,
     double? noteMin,
   }) async {
     try {
@@ -18,14 +18,10 @@ class DoctorService {
       QuerySnapshot allDocs = await _db.collection('medecin').get();
       print('Total documents dans collection medecin: ${allDocs.docs.length}');
       
-      // Ensuite essayer avec le filtre
-      QuerySnapshot querySnapshot = await _db
-          .collection('medecin')
-          .where('actif', isEqualTo: true)
-          .orderBy('nom')
-          .get();
+      // Ensuite essayer SANS le filtre actif pour éviter l'erreur d'index
+      QuerySnapshot querySnapshot = await _db.collection('medecin').get();
 
-      print('Documents récupérés avec filtre actif=true: ${querySnapshot.docs.length}');
+      print('Documents récupérés sans filtre: ${querySnapshot.docs.length}');
       
       List<Doctor> doctors = querySnapshot.docs.map((doc) {
         Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
@@ -44,7 +40,7 @@ class DoctorService {
         disponibilite: disponibilite,
         typeConsultation: typeConsultation,
         secteur: secteur,
-        tarifRange: tarifRange,
+        tarifConsultation: tarifConsultation,
         noteMin: noteMin,
       );
 
@@ -64,7 +60,7 @@ class DoctorService {
     String? disponibilite,
     String? typeConsultation,
     String? secteur,
-    String? tarifRange,
+    String? tarifConsultation,
     double? noteMin,
   }) {
     List<Doctor> filteredDoctors = List.from(doctors);
@@ -96,13 +92,13 @@ class DoctorService {
       filteredDoctors = filteredDoctors.where((d) => d.secteur == secteur).toList();
     }
 
-    if (tarifRange != null) {
-      if (tarifRange == '< 30€') {
-        filteredDoctors = filteredDoctors.where((d) => d.tarif < 30).toList();
-      } else if (tarifRange == '30–60€') {
-        filteredDoctors = filteredDoctors.where((d) => d.tarif >= 30 && d.tarif <= 60).toList();
-      } else if (tarifRange == '60€+') {
-        filteredDoctors = filteredDoctors.where((d) => d.tarif > 60).toList();
+    if (tarifConsultation != null) {
+      if (tarifConsultation == '< 100') {
+        filteredDoctors = filteredDoctors.where((d) => d.tarif < 100).toList();
+      } else if (tarifConsultation == '100-300') {
+        filteredDoctors = filteredDoctors.where((d) => d.tarif >= 100 && d.tarif <= 300).toList();
+      } else if (tarifConsultation == '300+') {
+        filteredDoctors = filteredDoctors.where((d) => d.tarif > 300).toList();
       }
     }
 
@@ -133,6 +129,7 @@ class DoctorService {
         dateValidationCompte: Timestamp.fromDate(DateTime(2020, 1, 15)),
         diplome: 'diplomes/martin_sophie.pdf',
         dureConsultationMin: 30,
+        tarifConsultationFromDB: 150,
         latitude: 48.8466,
         longitude: 2.2860,
         disponibilites: ['Lundi 14h-18h', 'Mercredi 9h-12h', 'Vendredi 14h-18h'],
@@ -155,6 +152,7 @@ class DoctorService {
         dateValidationCompte: Timestamp.fromDate(DateTime(2019, 3, 20)),
         diplome: 'diplomes/dubois_pierre.pdf',
         dureConsultationMin: 20,
+        tarifConsultationFromDB: 100,
         latitude: 48.8708,
         longitude: 2.3020,
         disponibilites: ['Lundi 8h-12h', 'Mardi 14h-18h', 'Jeudi 8h-12h'],
@@ -177,6 +175,7 @@ class DoctorService {
         dateValidationCompte: Timestamp.fromDate(DateTime(2018, 6, 10)),
         diplome: 'diplomes/bernard_marie.pdf',
         dureConsultationMin: 25,
+        tarifConsultationFromDB: 180,
         latitude: 48.8682,
         longitude: 2.3164,
         disponibilites: ['Mardi 9h-13h', 'Jeudi 14h-18h', 'Vendredi 9h-13h'],

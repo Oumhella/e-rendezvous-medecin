@@ -345,6 +345,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildActiveFilters() {
+    if (_filters.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20),
       height: 40,

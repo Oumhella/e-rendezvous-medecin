@@ -18,6 +18,7 @@ class Doctor {
   final Timestamp dateValidationCompte;
   final String diplome;
   final int dureConsultationMin;
+  final int tarifConsultationFromDB;
   final double latitude;
   final double longitude;
   final List<String> disponibilites;
@@ -40,6 +41,7 @@ class Doctor {
     required this.dateValidationCompte,
     required this.diplome,
     required this.dureConsultationMin,
+    required this.tarifConsultationFromDB,
     required this.latitude,
     required this.longitude,
     required this.disponibilites,
@@ -51,18 +53,29 @@ class Doctor {
   String get experienceText => '$anneesExperience ans d\'expérience';
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
+    // Gérer le cas où specialite_id est une DocumentReference
+    String specialite = 'Généraliste';
+    if (json['specialite'] != null) {
+      specialite = json['specialite'].toString();
+    } else if (json['specialite_id'] != null) {
+      final specialiteRef = json['specialite_id'];
+      if (specialiteRef is String && specialiteRef.isNotEmpty) {
+        specialite = specialiteRef;
+      }
+    }
+    
     return Doctor(
-      id: json['id'] ?? '',
-      nom: json['nom'] ?? '',
+      id: json['id'] ?? json['utilisateur_id'] ?? '',
+      nom: json['nom'] ?? 'Médecin',
       prenom: json['prenom'] ?? '',
-      specialite: json['specialite'] ?? '',
-      noteMoyenne: (json['noteMoyenne'] ?? 0.0).toDouble(),
-      adresseCabinet: json['adresseCabinet'] ?? '',
+      specialite: specialite,
+      noteMoyenne: (json['noteMoyenne'] ?? 4.0).toDouble(),
+      adresseCabinet: json['adresseCabinet'] ?? json['adresse'] ?? 'Adresse non spécifiée',
       telephone: json['telephone'] ?? '',
-      actif: json['actif'] ?? false,
+      actif: json['actif'] ?? true,
       consultationEnLigne: json['consultationEnLigne'] ?? false,
       anneesExperience: json['anneesExperience'] ?? 0,
-      biographies: json['biographies'] ?? '',
+      biographies: json['biographies'] ?? json['biographie'] ?? '',
       certificatExercice: json['certificatExercice'] ?? '',
       cin: json['cin'] ?? '',
       cv: json['cv'] ?? '',
@@ -70,9 +83,10 @@ class Doctor {
           ? json['dateValidationCompte'] as Timestamp
           : Timestamp.now(),
       diplome: json['diplome'] ?? '',
-      dureConsultationMin: json['dureConsultationMin'] ?? 30,
-      latitude: (json['latitude'] ?? 0.0).toDouble(),
-      longitude: (json['longitude'] ?? 0.0).toDouble(),
+      dureConsultationMin: json['dureConsultationMin'] ?? json['dureeConsultationMin'] ?? 30,
+      tarifConsultationFromDB: json['tarifConsultation'] ?? 0,
+      latitude: (json['latitude'] ?? 33.5731).toDouble(), // Casablanca par défaut
+      longitude: (json['longitude'] ?? -7.5898).toDouble(),
       disponibilites: List<String>.from(json['disponibilites'] ?? []),
     );
   }
@@ -96,6 +110,7 @@ class Doctor {
       'dateValidationCompte': dateValidationCompte,
       'diplome': diplome,
       'dureConsultationMin': dureConsultationMin,
+      'tarifConsultation': tarifConsultationFromDB,
       'latitude': latitude,
       'longitude': longitude,
       'disponibilites': disponibilites,
@@ -110,7 +125,9 @@ class Doctor {
   double get distance => _calculateDistance();
   String get distanceText => '${distance.toStringAsFixed(1)} km';
   bool get disponibleAujourdhui => actif;
-  int get tarif => dureConsultationMin * 2; // Estimation
+  int get tarif => tarifConsultationFromDB > 0 ? tarifConsultationFromDB : dureConsultationMin * 2; // Utilise la vraie valeur ou estimation
+  int get tarifConsultation => tarif; // Alias pour la compatibilité
+  String get tarifText => '$tarif DH'; // Affiche le tarif réel en DH
   String get secteur => _determineSecteur();
   bool get consultationPresentiel => true;
   bool get consultationTele => consultationEnLigne;
@@ -121,8 +138,14 @@ class Doctor {
     if (adresse.contains('Paris')) {
       final match = RegExp(r'Paris (\d+)[eè]me').firstMatch(adresse);
       return match != null ? 'Paris ${match.group(1)}ème' : 'Paris';
+    } else if (adresse.contains('Casablanca')) {
+      return 'Casablanca';
+    } else if (adresse.contains('Rabat')) {
+      return 'Rabat';
+    } else if (adresse.isNotEmpty) {
+      return adresse.split(',').last.trim();
     }
-    return 'France';
+    return 'Maroc';
   }
 
   double _calculateDistance() {
