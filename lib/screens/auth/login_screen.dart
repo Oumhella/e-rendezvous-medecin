@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
+import '../../services/secretaire_service.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
   final _authService        = AuthService();
+  final _secretaireService  = SecretaireService();
   bool _isLoading           = false;
   bool _obscurePassword     = true;
 
@@ -35,9 +37,46 @@ class _LoginScreenState extends State<LoginScreen> {
       password: _passwordController.text,
     );
     setState(() => _isLoading = false);
-    if (error != null && mounted) _showError(error);
-  }
+    if (error != null) {
+      if (mounted) _showError(error);
+      return;
+    }
 
+    try {
+      final user = _authService.currentUser;
+      if (user == null) throw Exception('Utilisateur non trouvé');
+
+      // ── FLUX SECRÉTAIRE ──
+      // On cherche d'abord si cet utilisateur est une secrétaire
+      final utilisateur = await _secretaireService.getUtilisateurByEmail(user.email!);
+      if (utilisateur != null) {
+        final secretaire = await _secretaireService.getSecretaireByUtilisateurId(utilisateur.id);
+        
+        if (secretaire != null) {
+          if (!secretaire.actif) {
+            throw Exception('Ce compte secrétaire est désactivé');
+          }
+          if (mounted) {
+            Navigator.pushReplacementNamed(
+              context, 
+              '/dashboard',
+              arguments: secretaire.medecinId,
+            );
+          }
+          return;
+        }
+      }
+
+      // ── FLUX PATIENT / MEDECIN (à implémenter) ──
+      // Si on arrive ici, l'utilisateur n'est pas une secrétaire.
+      // throw Exception('Ce compte n\'a pas les droits nécessaires pour se connecter ici.');
+      // Temporairement, on redirige vers le home si ce n'est pas une secrétaire.
+      
+    } catch (e) {
+      if (mounted) _showError(e.toString().replaceAll('Exception: ', ''));
+      await _authService.logout();
+    }
+  }
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
@@ -67,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Image(
-                      image: const AssetImage('assets/images/logo.png'),
+                      image: const AssetImage('/images/logo.png'),
                       width: 90,
                       height: 90,
                       errorBuilder: (_, __, ___) => const Icon(

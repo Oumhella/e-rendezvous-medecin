@@ -47,8 +47,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   Future<void> _initializeData() async {
-    // Initialiser les données mockées dans Firestore si nécessaire
-    await DoctorService.initializeMockData();
+    // Initialiser les données de test complètes si nécessaire
+    await DoctorService.seedTestData();
   }
 
   void _initializeAnimations() {
@@ -108,7 +108,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         disponibilite: _filters['disponibilite'],
         typeConsultation: _filters['typeConsultation'],
         secteur: _filters['secteur'],
-        tarifRange: _filters['tarif'],
+        tarifConsultation: _filters['tarif'],
         noteMin: _filters['noteMin'] != null 
             ? double.tryParse(_filters['noteMin']!) 
             : null,
