@@ -85,6 +85,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return StreamBuilder<List<RendezVous>>(
       stream: _service.getRendezVousStream(medecinId: _medecinId),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Erreur stream: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red)),
+          );
+        }
         final rdvList = snapshot.data ?? [];
 
         final today = DateTime.now();
@@ -186,6 +192,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return StreamBuilder<List<RendezVous>>(
       stream: _service.getRendezVousStream(medecinId: _medecinId),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Erreur: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red)),
+          );
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }

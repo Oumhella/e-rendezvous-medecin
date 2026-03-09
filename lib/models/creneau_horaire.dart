@@ -25,8 +25,12 @@ class CreneauHoraire {
       heureDebut: data['heureDebut'] ?? '',
       heureFin: data['heureFin'] ?? '',
       disponible: data['disponible'] ?? true,
-      dateJour: (data['dateJour'] as Timestamp?)?.toDate(),
-      medecinId: data['medecin_id'] ?? '',
+      dateJour: data['dateJour'] is Timestamp 
+          ? (data['dateJour'] as Timestamp).toDate()
+          : null,
+      medecinId: data['medecin_id'] is DocumentReference
+          ? (data['medecin_id'] as DocumentReference).id
+          : (data['medecin_id']?.toString() ?? ''),
     );
   }
 

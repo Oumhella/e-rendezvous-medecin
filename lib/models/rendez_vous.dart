@@ -29,7 +29,9 @@ class RendezVous {
     final data = doc.data() as Map<String, dynamic>;
     return RendezVous(
       id: doc.id,
-      dateHeure: (data['dateHeure'] as Timestamp?)?.toDate(),
+      dateHeure: data['dateHeure'] is Timestamp 
+          ? (data['dateHeure'] as Timestamp).toDate() 
+          : null,
       typeVisite: enumFromString(
         TypeVisite.values,
         data['typeVisite'] ?? 'cabinet',
@@ -40,9 +42,15 @@ class RendezVous {
       ),
       notes: data['notes'] ?? '',
       rappelEnvoye: data['rappelEnvoye'] ?? false,
-      dateReservation: (data['dateReservation'] as Timestamp?)?.toDate(),
-      medecinId: data['medecin_id'] ?? '',
-      patientId: data['patient_id'] ?? '',
+      dateReservation: data['dateReservation'] is Timestamp
+          ? (data['dateReservation'] as Timestamp).toDate()
+          : null,
+      medecinId: data['medecin_id'] is DocumentReference
+          ? (data['medecin_id'] as DocumentReference).id
+          : (data['medecin_id']?.toString() ?? ''),
+      patientId: data['patient_id'] is DocumentReference
+          ? (data['patient_id'] as DocumentReference).id
+          : (data['patient_id']?.toString() ?? ''),
     );
   }
 
@@ -57,8 +65,8 @@ class RendezVous {
       'dateReservation': dateReservation != null
           ? Timestamp.fromDate(dateReservation!)
           : FieldValue.serverTimestamp(),
-      'medecin_id': medecinId,
-      'patient_id': patientId,
+      'medecin_id': FirebaseFirestore.instance.doc('medecin/$medecinId'),
+      'patient_id': FirebaseFirestore.instance.doc('patient/$patientId'),
     };
   }
 

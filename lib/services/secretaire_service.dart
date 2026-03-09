@@ -58,17 +58,20 @@ class SecretaireService {
     final startOfDay = DateTime(date.year, date.month, date.day);
     final endOfDay = startOfDay.add(const Duration(days: 1));
 
+    // We query all slots for this doctor, then filter in Dart.
+    // This avoids needing to create a complex Composite Index in Firebase Console.
     final snapshot = await _db
         .collection('creneaux')
         .where('medecin_id', isEqualTo: medecinId)
-        .where('dateJour',
-            isGreaterThanOrEqualTo: Timestamp.fromDate(startOfDay))
-        .where('dateJour', isLessThan: Timestamp.fromDate(endOfDay))
-        .where('disponible', isEqualTo: true)
         .get();
 
     return snapshot.docs
         .map((doc) => CreneauHoraire.fromFirestore(doc))
+        .where((c) =>
+            c.disponible &&
+            c.dateJour != null &&
+            c.dateJour!.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
+            c.dateJour!.isBefore(endOfDay))
         .toList();
   }
 

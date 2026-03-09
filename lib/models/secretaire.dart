@@ -24,8 +24,12 @@ class Secretaire {
       id: doc.id,
       cin: data['cin'] ?? '',
       actif: data['actif'] ?? false,
-      utilisateurId: data['utilisateur_id'] ?? '',
-      medecinId: data['medecin_id'] ?? '',
+      utilisateurId: data['utilisateur_id'] is DocumentReference
+          ? (data['utilisateur_id'] as DocumentReference).id
+          : (data['utilisateur_id']?.toString() ?? ''),
+      medecinId: data['medecin_id'] is DocumentReference
+          ? (data['medecin_id'] as DocumentReference).id
+          : (data['medecin_id']?.toString() ?? ''),
     );
   }
 

@@ -420,6 +420,13 @@ class _CreneauxSelector extends StatelessWidget {
     return FutureBuilder(
       future: service.getCreneauxDisponibles(medecinId, date),
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text('Erreur: ${snapshot.error}',
+                style: const TextStyle(color: Colors.red, fontSize: 13)),
+          );
+        }
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Padding(
             padding: EdgeInsets.all(12),
