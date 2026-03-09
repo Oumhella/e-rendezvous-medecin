@@ -93,43 +93,74 @@ class _LoginScreenState extends State<LoginScreen> {
             // ── Header gradient avec logo ──
             Container(
               width: double.infinity,
-              height: 260,
-              decoration: const BoxDecoration(
-                gradient: AppColors.gradient,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(40),
-                  bottomRight: Radius.circular(40),
+              height: 300,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [AppColors.navyDark, AppColors.lightBlue],
                 ),
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(50),
+                  bottomRight: Radius.circular(50),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.navyDark.withOpacity(0.3),
+                    spreadRadius: 2,
+                    blurRadius: 15,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
               child: SafeArea(
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Image(
-                      image: const AssetImage('/images/logo.png'),
-                      width: 90,
-                      height: 90,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.local_hospital,
-                        size: 70,
-                        color: AppColors.white,
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            spreadRadius: 2,
+                          ),
+                        ],
+                      ),
+                      child: ClipOval(
+                        child: Image(
+                          image: const AssetImage('assets/images/logo.png'),
+                          width: 100,
+                          height: 100,
+                          fit: BoxFit.contain,
+                          errorBuilder: (_, __, ___) => const Icon(
+                            Icons.local_hospital,
+                            size: 80,
+                            color: AppColors.white,
+                          ),
+                        ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     const Text(
                       'E-Rendez-vous',
                       style: TextStyle(
                         color: AppColors.white,
-                        fontSize: 26,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 1.2,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.5,
                       ),
                     ),
-                    const Text(
-                      'Médecin',
+                    Text(
+                      'Portail Médecin',
                       style: TextStyle(
-                        color: AppColors.lightBlue,
+                        color: AppColors.white.withOpacity(0.85),
                         fontSize: 16,
+                        fontWeight: FontWeight.w500,
+                        letterSpacing: 0.5,
                       ),
                     ),
                   ],
@@ -139,7 +170,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
             // ── Formulaire ──
             Padding(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 32),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -273,25 +304,40 @@ class _LoginScreenState extends State<LoginScreen> {
     TextInputType keyboardType = TextInputType.text,
     Widget? suffixIcon,
   }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Colors.grey),
-        prefixIcon: Icon(icon, color: AppColors.navyDark),
-        suffixIcon: suffixIcon,
-        filled: true,
-        fillColor: AppColors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: AppColors.navyDark, width: 2),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            spreadRadius: 1,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        obscureText: obscureText,
+        keyboardType: keyboardType,
+        style: const TextStyle(fontSize: 16, color: AppColors.navyDark),
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: TextStyle(color: Colors.grey.shade400),
+          prefixIcon: Icon(icon, color: AppColors.lightBlue),
+          suffixIcon: suffixIcon,
+          filled: true,
+          fillColor: Colors.transparent,
+          contentPadding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: const BorderSide(color: AppColors.lightBlue, width: 2),
+          ),
         ),
       ),
     );

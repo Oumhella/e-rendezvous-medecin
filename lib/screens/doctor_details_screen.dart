@@ -266,15 +266,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         Container(
           height: 180,
           width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF7A949A), // grayish blue top
-                Color(0xFFD3E7ED), // light blue bottom
-              ],
-            ),
+          decoration: BoxDecoration(
+            color: AppColors.lightBlue,
           ),
           child: SafeArea(
             child: Align(
@@ -354,7 +347,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFC7E0EB),
+            color: AppColors.lightBlue.withOpacity(0.15),
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
@@ -493,8 +486,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       child: Container(
         width: 56,
         height: 56,
-        decoration: const BoxDecoration(
-          color: Color(0xFFC7E0EB), // light grayish blue
+        decoration: BoxDecoration(
+          color: AppColors.lightBlue.withOpacity(0.15),
           shape: BoxShape.circle,
         ),
         child: Icon(icon, color: Colors.black87, size: 24),
