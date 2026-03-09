@@ -49,7 +49,6 @@ class Doctor {
 
   String get fullName => 'Dr. $prenom $nom';
   String get noteText => '${noteMoyenne.toStringAsFixed(1)}';
-  String get tarifText => '${dureConsultationMin * 2}€'; // Estimation basée sur la durée
   String get experienceText => '$anneesExperience ans d\'expérience';
 
   factory Doctor.fromJson(Map<String, dynamic> json) {
@@ -63,14 +62,15 @@ class Doctor {
         specialite = specialiteRef;
       }
     }
-    
+
     return Doctor(
       id: json['id'] ?? json['utilisateur_id'] ?? '',
       nom: json['nom'] ?? 'Médecin',
       prenom: json['prenom'] ?? '',
       specialite: specialite,
       noteMoyenne: (json['noteMoyenne'] ?? 4.0).toDouble(),
-      adresseCabinet: json['adresseCabinet'] ?? json['adresse'] ?? 'Adresse non spécifiée',
+      adresseCabinet:
+          json['adresseCabinet'] ?? json['adresse'] ?? 'Adresse non spécifiée',
       telephone: json['telephone'] ?? '',
       actif: json['actif'] ?? true,
       consultationEnLigne: json['consultationEnLigne'] ?? false,
@@ -79,13 +79,15 @@ class Doctor {
       certificatExercice: json['certificatExercice'] ?? '',
       cin: json['cin'] ?? '',
       cv: json['cv'] ?? '',
-      dateValidationCompte: json['dateValidationCompte'] is Timestamp 
+      dateValidationCompte: json['dateValidationCompte'] is Timestamp
           ? json['dateValidationCompte'] as Timestamp
           : Timestamp.now(),
       diplome: json['diplome'] ?? '',
-      dureConsultationMin: json['dureConsultationMin'] ?? json['dureeConsultationMin'] ?? 30,
+      dureConsultationMin:
+          json['dureConsultationMin'] ?? json['dureeConsultationMin'] ?? 30,
       tarifConsultationFromDB: json['tarifConsultation'] ?? 0,
-      latitude: (json['latitude'] ?? 33.5731).toDouble(), // Casablanca par défaut
+      latitude: (json['latitude'] ?? 33.5731)
+          .toDouble(), // Casablanca par défaut
       longitude: (json['longitude'] ?? -7.5898).toDouble(),
       disponibilites: List<String>.from(json['disponibilites'] ?? []),
     );
@@ -125,7 +127,9 @@ class Doctor {
   double get distance => _calculateDistance();
   String get distanceText => '${distance.toStringAsFixed(1)} km';
   bool get disponibleAujourdhui => actif;
-  int get tarif => tarifConsultationFromDB > 0 ? tarifConsultationFromDB : dureConsultationMin * 2; // Utilise la vraie valeur ou estimation
+  int get tarif => tarifConsultationFromDB > 0
+      ? tarifConsultationFromDB
+      : dureConsultationMin * 2; // Utilise la vraie valeur ou estimation
   int get tarifConsultation => tarif; // Alias pour la compatibilité
   String get tarifText => '$tarif DH'; // Affiche le tarif réel en DH
   String get secteur => _determineSecteur();
@@ -155,9 +159,11 @@ class Doctor {
 
   String _determineSecteur() {
     // Logique pour déterminer le secteur selon la localisation
-    if (adresseCabinet.contains('Paris 7') || adresseCabinet.contains('Paris 8')) {
+    if (adresseCabinet.contains('Paris 7') ||
+        adresseCabinet.contains('Paris 8')) {
       return 'Secteur 1';
-    } else if (adresseCabinet.contains('Paris 13') || adresseCabinet.contains('Paris 14')) {
+    } else if (adresseCabinet.contains('Paris 13') ||
+        adresseCabinet.contains('Paris 14')) {
       return 'Secteur 2';
     }
     return 'Secteur 3';

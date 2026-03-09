@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/secretaire_service.dart';
+import '../../services/doctor_service.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,12 +13,12 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _emailController    = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _authService        = AuthService();
-  final _secretaireService  = SecretaireService();
-  bool _isLoading           = false;
-  bool _obscurePassword     = true;
+  final _authService = AuthService();
+  final _secretaireService = SecretaireService();
+  bool _isLoading = false;
+  bool _obscurePassword = true;
 
   @override
   void dispose() {
@@ -47,36 +48,53 @@ class _LoginScreenState extends State<LoginScreen> {
       if (user == null) throw Exception('Utilisateur non trouvé');
 
       // ── FLUX SECRÉTAIRE ──
-      // On cherche d'abord si cet utilisateur est une secrétaire
-      final utilisateur = await _secretaireService.getUtilisateurByEmail(user.email!);
+      final utilisateur = await _secretaireService.getUtilisateurByEmail(
+        user.email!,
+      );
       if (utilisateur != null) {
-        final secretaire = await _secretaireService.getSecretaireByUtilisateurId(utilisateur.id);
-        
+        final secretaire = await _secretaireService
+            .getSecretaireByUtilisateurId(utilisateur.id);
+
         if (secretaire != null) {
           if (!secretaire.actif) {
             throw Exception('Ce compte secrétaire est désactivé');
           }
           if (mounted) {
             Navigator.pushReplacementNamed(
-              context, 
+              context,
               '/dashboard',
               arguments: secretaire.medecinId,
             );
           }
           return;
         }
+
+        // ── FLUX MÉDECIN ──
+        final medecin = await DoctorService.getMedecinByUtilisateurId(
+          utilisateur.id,
+        );
+        if (medecin != null) {
+          if (mounted) {
+            Navigator.pushReplacementNamed(
+              context,
+              '/medecin-dashboard',
+              arguments: {
+                'medecinId': medecin.id,
+                'medecinNom': utilisateur.nom,
+              },
+            );
+          }
+          return;
+        }
       }
 
-      // ── FLUX PATIENT / MEDECIN (à implémenter) ──
-      // Si on arrive ici, l'utilisateur n'est pas une secrétaire.
-      // throw Exception('Ce compte n\'a pas les droits nécessaires pour se connecter ici.');
-      // Temporairement, on redirige vers le home si ce n'est pas une secrétaire.
-      
+      // ── FLUX PATIENT / AUTRE (à implémenter) ──
     } catch (e) {
       if (mounted) _showError(e.toString().replaceAll('Exception: ', ''));
       await _authService.logout();
     }
   }
+
   void _showError(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
@@ -220,7 +238,8 @@ class _LoginScreenState extends State<LoginScreen> {
                         onPressed: _isLoading ? null : _login,
                         child: _isLoading
                             ? const CircularProgressIndicator(
-                                color: AppColors.white)
+                                color: AppColors.white,
+                              )
                             : const Text(
                                 'Se connecter',
                                 style: TextStyle(
@@ -238,13 +257,16 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text("Pas encore de compte ? ",
-                          style: TextStyle(color: Colors.grey)),
+                      const Text(
+                        "Pas encore de compte ? ",
+                        style: TextStyle(color: Colors.grey),
+                      ),
                       GestureDetector(
                         onTap: () => Navigator.push(
                           context,
                           MaterialPageRoute(
-                              builder: (_) => const RegisterScreen()),
+                            builder: (_) => const RegisterScreen(),
+                          ),
                         ),
                         child: const Text(
                           "S'inscrire",
@@ -290,8 +312,7 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide:
-              const BorderSide(color: AppColors.navyDark, width: 2),
+          borderSide: const BorderSide(color: AppColors.navyDark, width: 2),
         ),
       ),
     );
@@ -302,8 +323,10 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Réinitialiser le mot de passe',
-            style: TextStyle(color: AppColors.navyDark)),
+        title: const Text(
+          'Réinitialiser le mot de passe',
+          style: TextStyle(color: AppColors.navyDark),
+        ),
         content: TextField(
           controller: emailController,
           decoration: const InputDecoration(hintText: 'Votre email'),
@@ -312,28 +335,34 @@ class _LoginScreenState extends State<LoginScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Annuler',
-                style: TextStyle(color: Colors.grey)),
+            child: const Text('Annuler', style: TextStyle(color: Colors.grey)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.navyDark),
+              backgroundColor: AppColors.navyDark,
+            ),
             onPressed: () async {
-              final error = await _authService
-                  .resetPassword(emailController.text.trim());
+              final error = await _authService.resetPassword(
+                emailController.text.trim(),
+              );
               if (mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                  content: Text(
-                      error ?? '📧 Email envoyé ! Vérifiez votre boîte.'),
-                  backgroundColor: error != null
-                      ? Colors.red
-                      : AppColors.navyDark,
-                ));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      error ?? '📧 Email envoyé ! Vérifiez votre boîte.',
+                    ),
+                    backgroundColor: error != null
+                        ? Colors.red
+                        : AppColors.navyDark,
+                  ),
+                );
               }
             },
-            child: const Text('Envoyer',
-                style: TextStyle(color: AppColors.white)),
+            child: const Text(
+              'Envoyer',
+              style: TextStyle(color: AppColors.white),
+            ),
           ),
         ],
       ),
