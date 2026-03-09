@@ -60,10 +60,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       try {
         final creneauxQuery = await db.collection('creneaux')
             .where('medecin_id', isEqualTo: widget.doctor.id)
-            .where('disponible', isEqualTo: true)
             .get();
 
-        Map<DateTime, List<String>> groupedSlots = {};
+        Map<DateTime, List<Map<String, dynamic>>> groupedSlots = {};
         
         for (var doc in creneauxQuery.docs) {
           final data = doc.data();
@@ -76,12 +75,18 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
           if (date.isBefore(DateTime(today.year, today.month, today.day))) continue;
 
           final heureDebut = data['heureDebut'] as String;
+          final isDisponible = data['disponible'] == true;
           
           if (!groupedSlots.containsKey(date)) {
             groupedSlots[date] = [];
           }
-          if (!groupedSlots[date]!.contains(heureDebut)) {
-            groupedSlots[date]!.add(heureDebut);
+          bool exists = groupedSlots[date]!.any((s) => s['time'] == heureDebut);
+          if (!exists) {
+            groupedSlots[date]!.add({
+              'id': doc.id,
+              'time': heureDebut,
+              'isAvailable': isDisponible,
+            });
           }
         }
 
@@ -90,7 +95,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         
         final sortedDates = groupedSlots.keys.toList()..sort();
         for (var date in sortedDates) {
-          final slots = groupedSlots[date]!..sort();
+          final slots = groupedSlots[date]!..sort((a, b) => (a['time'] as String).compareTo(b['time'] as String));
           availableDates.add({
             'day': weekDays[date.weekday - 1],
             'date': date.day.toString(),
@@ -662,8 +667,8 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
     }
 
     final slotsForSelectedDate = _selectedDateIndex < _availableDates.length 
-        ? _availableDates[_selectedDateIndex]['slots'] as List<String>
-        : <String>[];
+        ? _availableDates[_selectedDateIndex]['slots'] as List<Map<String, dynamic>>
+        : <Map<String, dynamic>>[];
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -760,35 +765,43 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             runSpacing: 12,
             children: slotsForSelectedDate.isEmpty 
                 ? [const Text('Aucun créneau pour cette date')]
-                : slotsForSelectedDate.map((time) => _buildTimeSlot(time)).toList(),
+                : slotsForSelectedDate.map((slot) => _buildTimeSlot(slot)).toList(),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTimeSlot(String time) {
+  Widget _buildTimeSlot(Map<String, dynamic> slotData) {
+    String time = slotData['time'];
+    bool isAvailable = slotData['isAvailable'];
     bool isSelected = _selectedTime == time;
     return GestureDetector(
-      onTap: () {
+      onTap: isAvailable ? () {
         setState(() {
           _selectedTime = time;
         });
-      },
+      } : null,
       child: Container(
         width: 80,
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF2B3A4A) : const Color(0xFFC7E0EB), // Light blue background
+          color: !isAvailable 
+              ? Colors.grey[200] 
+              : isSelected ? const Color(0xFF2B3A4A) : const Color(0xFFC7E0EB), // Light blue background
           borderRadius: BorderRadius.circular(16),
+          border: !isAvailable ? Border.all(color: Colors.grey[300]!) : null,
         ),
         alignment: Alignment.center,
         child: Text(
           time,
           style: TextStyle(
-            color: isSelected ? Colors.white : const Color(0xFF2B3A4A),
+            color: !isAvailable 
+                ? Colors.grey[400] 
+                : isSelected ? Colors.white : const Color(0xFF2B3A4A),
             fontWeight: FontWeight.w500,
             fontSize: 14,
+            decoration: !isAvailable ? TextDecoration.lineThrough : null,
           ),
         ),
       ),
@@ -1068,6 +1081,10 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     final monthStr = months[rawDate.month - 1];
                     final dateStr = '$day $monthStr ${rawDate.year}';
                     
+                    final slots = selectedDateMap['slots'] as List<Map<String, dynamic>>;
+                    final matchingSlot = slots.firstWhere((s) => s['time'] == _selectedTime, orElse: () => {});
+                    final creneauId = matchingSlot['id'] ?? '';
+                    
                     Navigator.push(
                       context,
                       MaterialPageRoute(
@@ -1076,6 +1093,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                           dateStr: dateStr,
                           date: rawDate,
                           time: _selectedTime!,
+                          creneauId: creneauId as String,
                         ),
                       ),
                     );

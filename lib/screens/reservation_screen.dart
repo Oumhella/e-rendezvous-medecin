@@ -9,6 +9,7 @@ class ReservationScreen extends StatefulWidget {
   final String dateStr;
   final DateTime date;
   final String time;
+  final String creneauId;
 
   const ReservationScreen({
     super.key,
@@ -16,6 +17,7 @@ class ReservationScreen extends StatefulWidget {
     required this.dateStr,
     required this.date,
     required this.time,
+    required this.creneauId,
   });
 
   @override
@@ -88,7 +90,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
       );
 
       await db.collection('rendezVous').add({
-        'creneau_id': '', // Will need to be mapped to full creneau logic if needed
+        'creneau_id': widget.creneauId,
         'dateHeure': Timestamp.fromDate(dateHeure),
         'dateReservation': FieldValue.serverTimestamp(),
         'medecin_id': widget.doctor.id,
@@ -97,11 +99,17 @@ class _ReservationScreenState extends State<ReservationScreen> {
         'patient_id': user.uid,
         'rappelEnvoye': false,
         'reservePar': user.uid,
-        'statut': 'enAttente',
+        'statut': 'Confirmé ',
         'typeVisite': _selectedTypeVisite,
         'nomPatient': _nameController.text.trim(),
         'telephonePatient': _phoneController.text.trim(),
       });
+      
+      if (widget.creneauId.isNotEmpty) {
+        await db.collection('creneaux').doc(widget.creneauId).update({
+          'disponible': false,
+        });
+      }
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

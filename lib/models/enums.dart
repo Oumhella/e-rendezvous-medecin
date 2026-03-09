@@ -46,7 +46,7 @@ String enumToString(Object enumValue) => enumValue.toString().split('.').last;
 
 /// Parse a Firestore string back to the matching enum value.
 T enumFromString<T>(List<T> values, String value) {
-  final cleanValue = value.trim().toLowerCase();
+  final cleanValue = value.trim().toLowerCase().replaceAll('é', 'e').replaceAll('è', 'e').replaceAll('à', 'a').replaceAll(' ', '');
   return values.firstWhere(
     (e) => e.toString().split('.').last.toLowerCase() == cleanValue,
     orElse: () => values.first,
