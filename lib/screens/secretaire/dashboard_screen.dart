@@ -253,7 +253,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
     if (confirm == true) {
-      await _authService.signOut();
+      await _authService.logout();
       if (mounted) {
         Navigator.pushReplacementNamed(context, '/login');
       }

@@ -1,52 +1,121 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/secretaire.dart';
-import '../models/utilisateur.dart';
+import 'package:crypto/crypto.dart';
+import 'dart:convert';
 
-/// Handles Firebase Authentication & secretary profile fetching.
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  /// Current Firebase user (null if not logged in).
+  // Utilisateur connecté en ce moment
   User? get currentUser => _auth.currentUser;
 
-  /// Stream that emits whenever auth state changes.
+  // Stream pour écouter les changements de connexion
   Stream<User?> get authStateChanges => _auth.authStateChanges();
 
-  /// Sign in with email & password.
-  Future<UserCredential> signIn(String email, String password) async {
-    return await _auth.signInWithEmailAndPassword(
-      email: email.trim(),
-      password: password.trim(),
-    );
+  // ── INSCRIPTION ──────────────────────────────────────
+  Future<String?> register({
+    required String email,
+    required String password,
+    required String nom,
+    required String prenom,
+    required String telephone,
+    required String adresse,
+    required String cin,
+    required DateTime dateNaissance,
+    required String numeroSecuriteSociale,
+  }) async {
+    try {
+      // Créer le compte Firebase Auth
+      final credential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final userId = credential.user!.uid;
+
+      // Crypter le mot de passe avec SHA-256
+      final bytes = utf8.encode(password);
+      final digest = sha256.convert(bytes);
+      final hashedPassword = digest.toString();
+
+      // Sauvegarder dans collection utilisateur
+      await _db.collection('utilisateur').doc(userId).set({
+        'idU': userId,
+        'nom': nom,
+        'prenom': prenom,
+        'email': email,
+        'telephone': telephone,
+        'password': hashedPassword, // Mot de passe crypté
+
+        'dateInscription': FieldValue.serverTimestamp(),
+        'statut': 'actif',
+        'photoProfil': '',
+      });
+
+      // Sauvegarder dans collection patient
+      await _db.collection('patient').doc(userId).set({
+        'actif': false,
+        'adresse': adresse,
+        'cin': cin,
+        'dateNaissance': Timestamp.fromDate(dateNaissance),
+        'numeroSecuriteSociale': numeroSecuriteSociale,
+      });
+
+      return null; // null = succès
+    } on FirebaseAuthException catch (e) {
+      return _handleError(e.code);
+    }
   }
 
-  /// Sign out.
-  Future<void> signOut() async {
+  // ── CONNEXION ────────────────────────────────────────
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return null; // null = succès
+    } on FirebaseAuthException catch (e) {
+      return _handleError(e.code);
+    }
+  }
+
+  // ── DÉCONNEXION ──────────────────────────────────────
+  Future<void> logout() async {
     await _auth.signOut();
   }
 
-  /// Fetch the `utilisateur` document whose `email` matches the current user.
-  Future<Utilisateur?> getUtilisateurByEmail(String email) async {
-    final query = await _db
-        .collection('utilisateur')
-        .where('email', isEqualTo: email)
-        .limit(1)
-        .get();
-    if (query.docs.isEmpty) return null;
-    return Utilisateur.fromFirestore(query.docs.first);
+  // ── MOT DE PASSE OUBLIÉ ──────────────────────────────
+  Future<String?> resetPassword(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      return _handleError(e.code);
+    }
   }
 
-  /// Fetch the `secretaire` document linked to the given utilisateur ID.
-  Future<Secretaire?> getSecretaireByUtilisateurId(
-      String utilisateurId) async {
-    final query = await _db
-        .collection('secretaire')
-        .where('utilisateur_id', isEqualTo: utilisateurId)
-        .limit(1)
-        .get();
-    if (query.docs.isEmpty) return null;
-    return Secretaire.fromFirestore(query.docs.first);
+  // ── GESTION DES ERREURS ──────────────────────────────
+  String _handleError(String code) {
+    switch (code) {
+      case 'user-not-found':
+        return 'Aucun compte trouvé avec cet email.';
+      case 'wrong-password':
+        return 'Mot de passe incorrect.';
+      case 'email-already-in-use':
+        return 'Cet email est déjà utilisé.';
+      case 'weak-password':
+        return 'Le mot de passe doit contenir au moins 6 caractères.';
+      case 'invalid-email':
+        return 'Adresse email invalide.';
+      case 'too-many-requests':
+        return 'Trop de tentatives. Réessayez plus tard.';
+      default:
+        return 'Une erreur est survenue. Réessayez.';
+    }
   }
 }

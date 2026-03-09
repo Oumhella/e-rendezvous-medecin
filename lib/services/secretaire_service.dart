@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/rendez_vous.dart';
 import '../models/creneau_horaire.dart';
+import '../models/utilisateur.dart';
+import '../models/secretaire.dart';
 
 /// Firestore CRUD operations for the secretary role.
 class SecretaireService {
@@ -118,5 +120,29 @@ class SecretaireService {
     });
 
     return patRef.id;
+  }
+
+  // ── Utilisateurs et Secrétaires ──────────────────────────────────
+
+  /// Fetch the `utilisateur` document whose `email` matches the given email.
+  Future<Utilisateur?> getUtilisateurByEmail(String email) async {
+    final query = await _db
+        .collection('utilisateur')
+        .where('email', isEqualTo: email)
+        .limit(1)
+        .get();
+    if (query.docs.isEmpty) return null;
+    return Utilisateur.fromFirestore(query.docs.first);
+  }
+
+  /// Fetch the `secretaire` document linked to the given utilisateur ID.
+  Future<Secretaire?> getSecretaireByUtilisateurId(String utilisateurId) async {
+    final query = await _db
+        .collection('secretaire')
+        .where('utilisateur_id', isEqualTo: utilisateurId)
+        .limit(1)
+        .get();
+    if (query.docs.isEmpty) return null;
+    return Secretaire.fromFirestore(query.docs.first);
   }
 }
