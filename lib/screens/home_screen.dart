@@ -157,16 +157,18 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       body: SafeArea(
         child: Column(
           children: [
-            _buildTopBar(),
             Expanded(
               child: RefreshIndicator(
                 onRefresh: _loadDoctors,
                 color: _navy,
-                child: FadeTransition(
-                  opacity: _fadeAnimation,
-                  child: SlideTransition(
-                    position: _slideAnimation,
-                    child: _buildBody(),
+                child: SingleChildScrollView(
+                  controller: _scrollController,
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    children: [
+                      _buildTopBar(),
+                      _buildBody(),
+                    ],
                   ),
                 ),
               ),
@@ -201,19 +203,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               // Logo
               Container(
-                width: 46, height: 46,
+                width: 60, height: 60,
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   boxShadow: [
-                    BoxShadow(color: AppColors.lightBlue.withOpacity(0.3), blurRadius: 12, offset: const Offset(0, 4)),
+                    BoxShadow(color: AppColors.lightBlue.withOpacity(0.4), blurRadius: 16, offset: const Offset(0, 6)),
                   ],
                 ),
                 child: const ClipOval(
                   child: Image(
                     image: AssetImage('assets/images/logo.png'),
-                    width: 36,
-                    height: 36,
+                    width: 50,
+                    height: 50,
                     fit: BoxFit.contain,
                   ),
                 ),
