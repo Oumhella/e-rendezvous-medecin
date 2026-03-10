@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Palette principale
+  // Palette principale - Bleu ciel et bleu marine
   static const Color navyDark  = Color(0xFF243B42);
   static const Color lightBlue = Color(0xFFC5DEE6);
   static const Color white     = Color(0xFFFFFFFF);

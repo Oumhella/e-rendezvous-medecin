@@ -231,14 +231,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildLandingHeader() {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [
-            Colors.white,
-            AppColors.offWhite.withOpacity(0.5),
-          ],
-        ),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -266,7 +259,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           width: 70,
                           height: 70,
                           decoration: BoxDecoration(
-                            gradient: AppColors.gradient,
+                            color: AppColors.navyDark,
                             borderRadius: BorderRadius.circular(25),
                             boxShadow: [
                               BoxShadow(
@@ -346,7 +339,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       return // Bouton connexion premium
                         Container(
                           decoration: BoxDecoration(
-                            gradient: AppColors.gradient,
+                            color: AppColors.navyDark,
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
@@ -549,12 +542,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 // Barre de recherche moderne
                 Container(
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        Colors.white,
-                        AppColors.navyDark.withOpacity(0.02),
-                      ],
-                    ),
+                    color: Colors.white,
                     borderRadius: BorderRadius.circular(25),
                     border: Border.all(
                       color: AppColors.navyDark.withOpacity(0.1),
@@ -592,7 +580,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             margin: const EdgeInsets.only(right: 12),
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              gradient: AppColors.gradient,
+                              color: AppColors.navyDark,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: GestureDetector(
@@ -623,12 +611,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                       decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppColors.lightBlue.withOpacity(0.15),
-                            AppColors.navyDark.withOpacity(0.08),
-                          ],
-                        ),
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(25),
                         border: Border.all(
                           color: AppColors.lightBlue.withOpacity(0.4),
@@ -683,7 +666,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   vertical: 8,
                                 ),
                                 decoration: BoxDecoration(
-                                  gradient: AppColors.gradient,
+                                  color: AppColors.navyDark,
                                   borderRadius: BorderRadius.circular(20),
                                   boxShadow: [
                                     BoxShadow(
@@ -760,8 +743,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          gradient: _selectedHeaderTab == 'nos_medecins' ? AppColors.gradient : null,
-                          color: _selectedHeaderTab == 'nos_medecins' ? null : Colors.transparent,
+                          color: _selectedHeaderTab == 'nos_medecins' ? AppColors.navyDark : Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -791,8 +773,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          gradient: _selectedHeaderTab == 'carte' ? AppColors.gradient : null,
-                          color: _selectedHeaderTab == 'carte' ? null : Colors.transparent,
+                          color: _selectedHeaderTab == 'carte' ? AppColors.navyDark : Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -822,8 +803,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
-                          gradient: _selectedHeaderTab == 'specialites' ? AppColors.gradient : null,
-                          color: _selectedHeaderTab == 'specialites' ? null : Colors.transparent,
+                          color: _selectedHeaderTab == 'specialites' ? AppColors.navyDark : Colors.transparent,
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Row(
@@ -903,9 +883,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white, AppColors.offWhite.withOpacity(0.5)],
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -920,7 +898,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: AppColors.gradient,
+                  color: AppColors.navyDark,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -969,8 +947,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          gradient: _isListView ? AppColors.gradient : null,
-                          color: _isListView ? null : Colors.transparent,
+                          color: _isListView ? AppColors.navyDark : Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -985,8 +962,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
-                          gradient: !_isListView ? AppColors.gradient : null,
-                          color: !_isListView ? null : Colors.transparent,
+                          color: !_isListView ? AppColors.navyDark : Colors.transparent,
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: Icon(
@@ -1019,9 +995,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white, AppColors.offWhite.withOpacity(0.5)],
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -1036,7 +1010,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: AppColors.gradient,
+                  color: AppColors.navyDark,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -1103,9 +1077,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           margin: const EdgeInsets.symmetric(horizontal: 20),
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [Colors.white, AppColors.offWhite.withOpacity(0.5)],
-            ),
+            color: Colors.white,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
@@ -1120,7 +1092,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: AppColors.gradient,
+                  color: AppColors.navyDark,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -1179,13 +1151,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    gradient: isSelected ? AppColors.gradient : null,
-                    color: isSelected ? null : Colors.white,
+                    color: isSelected ? AppColors.navyDark : AppColors.lightBlue.withOpacity(0.4),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: isSelected 
-                          ? Colors.transparent 
-                          : AppColors.navyDark.withOpacity(0.1),
+                          ? AppColors.navyDark
+                          : AppColors.lightBlue.withOpacity(0.6),
+                      width: isSelected ? 2 : 1,
                     ),
                     boxShadow: isSelected
                         ? [
@@ -1209,7 +1181,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Icon(
                         speciality['icon'] as IconData,
                         size: 24,
-                        color: isSelected ? Colors.white : AppColors.navyDark,
+                        color: isSelected ? AppColors.lightBlue : AppColors.navyDark,
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -1217,7 +1189,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : AppColors.navyDark,
+                          color: isSelected ? AppColors.lightBlue : AppColors.navyDark,
                         ),
                         textAlign: TextAlign.center,
                         maxLines: 2,
@@ -1229,7 +1201,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         style: TextStyle(
                           fontSize: 10,
                           fontWeight: FontWeight.w500,
-                          color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey[600],
+                          color: isSelected ? AppColors.lightBlue.withOpacity(0.8) : AppColors.navyDark.withOpacity(0.6),
                         ),
                       ),
                     ],
@@ -1291,7 +1263,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   height: 30,
                   child: Container(
                     decoration: BoxDecoration(
-                      gradient: AppColors.gradient,
+                      color: AppColors.navyDark,
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
@@ -1408,7 +1380,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onTap: () => _onDoctorTapped(doctor),
           child: Container(
             decoration: BoxDecoration(
-              gradient: AppColors.gradient,
+              color: AppColors.navyDark,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
@@ -1481,12 +1453,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.white,
-                  AppColors.offWhite.withOpacity(0.3),
-                ],
-              ),
+              color: Colors.white,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
@@ -1497,7 +1464,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    gradient: AppColors.gradient,
+                    color: AppColors.navyDark,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -1617,9 +1584,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.white, AppColors.offWhite.withOpacity(0.5)],
-        ),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -1637,7 +1602,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: AppColors.gradient,
+                  color: AppColors.navyDark,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: const Icon(
@@ -1689,7 +1654,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
-                          gradient: AppColors.gradient,
+                          color: AppColors.navyDark,
                           borderRadius: BorderRadius.circular(10),
                         ),
                         child: Icon(
@@ -1834,8 +1799,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  gradient: isActive ? AppColors.gradient : null,
-                  color: isActive ? null : Colors.transparent,
+                  color: isActive ? AppColors.navyDark : Colors.transparent,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
