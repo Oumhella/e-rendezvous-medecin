@@ -34,12 +34,6 @@ class _HistoriqueRdvScreenState extends State<HistoriqueRdvScreen> {
             children: [
               _buildFilterChip('Tous', null),
               const SizedBox(width: 8),
-              _buildFilterChip(
-                'En attente',
-                StatutRDV.enAttente,
-                Colors.orange,
-              ),
-              const SizedBox(width: 8),
               _buildFilterChip('Confirmés', StatutRDV.confirme, Colors.green),
               const SizedBox(width: 8),
               _buildFilterChip('Terminés', StatutRDV.termine, Colors.grey),
@@ -283,7 +277,6 @@ class _StatusChipSimple extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (statut) {
-      StatutRDV.enAttente => ('En attente', Colors.orange),
       StatutRDV.confirme => ('Confirmé', Colors.green),
       StatutRDV.annule => ('Annulé', Colors.red),
       StatutRDV.termine => ('Terminé', Colors.grey),
