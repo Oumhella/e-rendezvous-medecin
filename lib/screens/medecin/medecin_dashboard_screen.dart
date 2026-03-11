@@ -149,7 +149,6 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
               r.dateHeure != null &&
               DateFormat('yyyy-MM-dd').format(r.dateHeure!) == todayStr,
         );
-        final enAttente = rdvList.where((r) => r.statut == StatutRDV.enAttente);
         final confirmes = rdvList.where((r) => r.statut == StatutRDV.confirme);
 
         return RefreshIndicator(
@@ -179,12 +178,6 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
                 label: "RDV aujourd'hui",
                 value: todayRdv.length.toString(),
                 color: AppColors.navyDark,
-              ),
-              _StatCard(
-                icon: Icons.hourglass_top_rounded,
-                label: 'En attente',
-                value: enAttente.length.toString(),
-                color: Colors.orange.shade700,
               ),
               _StatCard(
                 icon: Icons.check_circle_outline_rounded,
@@ -488,7 +481,6 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (statut) {
-      StatutRDV.enAttente => ('En attente', Colors.orange),
       StatutRDV.confirme => ('Confirmé', Colors.green),
       StatutRDV.annule => ('Annulé', Colors.red),
       StatutRDV.termine => ('Terminé', Colors.grey),

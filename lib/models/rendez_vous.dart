@@ -17,7 +17,7 @@ class RendezVous {
     required this.id,
     this.dateHeure,
     this.typeVisite = TypeVisite.cabinet,
-    this.statut = StatutRDV.enAttente,
+    this.statut = StatutRDV.confirme,
     this.notes = '',
     this.rappelEnvoye = false,
     this.dateReservation,

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/rendez_vous.dart';
 import '../models/creneau_horaire.dart';
@@ -19,7 +20,7 @@ class SecretaireService {
     Query query = _db.collection('rendezVous');
 
     if (medecinId != null && medecinId.isNotEmpty) {
-      query = query.where('medecin_id', isEqualTo: medecinId);
+      query = query.where('medecin_id', isEqualTo: _db.doc('medecin/$medecinId'));
     }
     if (dateDebut != null) {
       query = query.where('dateHeure',
@@ -34,9 +35,40 @@ class SecretaireService {
         snapshot.docs.map((doc) => RendezVous.fromFirestore(doc)).toList());
   }
 
-  /// Add a new appointment.
-  Future<DocumentReference> addRendezVous(RendezVous rdv) {
-    return _db.collection('rendezVous').add(rdv.toFirestore());
+  /// Add a new appointment and optionally mark the time slot as booked.
+  Future<DocumentReference> addRendezVous(
+    RendezVous rdv, {
+    String? creneauHeureDebut,
+  }) async {
+    final batch = _db.batch();
+    final rdvRef = _db.collection('rendezVous').doc();
+    batch.set(rdvRef, rdv.toFirestore());
+
+    if (creneauHeureDebut != null && rdv.dateHeure != null) {
+      final startOfDay = DateTime(
+          rdv.dateHeure!.year, rdv.dateHeure!.month, rdv.dateHeure!.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      final slotQuery = await _db
+          .collection('creneaux')
+          .where('medecin_id', isEqualTo: _db.doc('medecin/${rdv.medecinId}'))
+          .get();
+
+      for (var doc in slotQuery.docs) {
+        final c = CreneauHoraire.fromFirestore(doc);
+        if (c.heureDebut == creneauHeureDebut &&
+            c.disponible &&
+            c.dateJour != null &&
+            c.dateJour!.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
+            c.dateJour!.isBefore(endOfDay)) {
+          batch.update(doc.reference, {'disponible': false});
+          break; // only book the first matching slot
+        }
+      }
+    }
+
+    await batch.commit();
+    return rdvRef;
   }
 
   /// Update an existing appointment.
@@ -54,6 +86,77 @@ class SecretaireService {
 
   // ── Créneaux ───────────────────────────────────────────────────
 
+  /// Real-time stream of all time-slots for a given doctor.
+  Stream<List<CreneauHoraire>> getCreneauxStream(String medecinId) {
+    return _db
+        .collection('creneaux')
+        .where('medecin_id', isEqualTo: FirebaseFirestore.instance.doc('medecin/$medecinId'))
+        // Note: Ordering by dateJour might require a composite index if filtered by medecin_id.
+        // Doing simple where, and we will sort in Dart if needed, to avoid index demands right now.
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => CreneauHoraire.fromFirestore(doc))
+            .toList());
+  }
+
+  /// Add a new time-slot.
+  Future<DocumentReference> addCreneau(CreneauHoraire creneau) {
+    return _db.collection('creneaux').add(creneau.toFirestore());
+  }
+
+  /// Update an existing time-slot.
+  Future<void> updateCreneau(CreneauHoraire creneau) {
+    return _db
+        .collection('creneaux')
+        .doc(creneau.id)
+        .update(creneau.toFirestore());
+  }
+
+  /// Delete a time-slot.
+  Future<void> deleteCreneau(String id) {
+    return _db.collection('creneaux').doc(id).delete();
+  }
+
+  /// Batch create time-slots for a specific day and duration.
+  Future<void> batchCreateCreneaux({
+    required String medecinId,
+    required DateTime dateJour,
+    required TimeOfDay heureDebut,
+    required TimeOfDay heureFin,
+    required int dureeMinutes,
+  }) async {
+    final batch = _db.batch();
+    
+    // Convert to minutes since midnight for easy iteration
+    int currentMinutes = heureDebut.hour * 60 + heureDebut.minute;
+    final endMinutes = heureFin.hour * 60 + heureFin.minute;
+
+    while (currentMinutes + dureeMinutes <= endMinutes) {
+      final startH = (currentMinutes ~/ 60).toString().padLeft(2, '0');
+      final startM = (currentMinutes % 60).toString().padLeft(2, '0');
+      
+      final nextMinutes = currentMinutes + dureeMinutes;
+      final endH = (nextMinutes ~/ 60).toString().padLeft(2, '0');
+      final endM = (nextMinutes % 60).toString().padLeft(2, '0');
+
+      final creneauRef = _db.collection('creneaux').doc();
+      final newSlot = CreneauHoraire(
+        id: creneauRef.id,
+        heureDebut: '$startH:$startM',
+        heureFin: '$endH:$endM',
+        disponible: true,
+        dateJour: dateJour,
+        medecinId: medecinId,
+      );
+
+      batch.set(creneauRef, newSlot.toFirestore());
+      
+      currentMinutes = nextMinutes;
+    }
+
+    await batch.commit();
+  }
+
   /// Fetch available time-slots for a doctor on a given date.
   Future<List<CreneauHoraire>> getCreneauxDisponibles(
       String medecinId, DateTime date) async {
@@ -64,10 +167,10 @@ class SecretaireService {
     // This avoids needing to create a complex Composite Index in Firebase Console.
     final snapshot = await _db
         .collection('creneaux')
-        .where('medecin_id', isEqualTo: medecinId)
+        .where('medecin_id', isEqualTo: _db.doc('medecin/$medecinId'))
         .get();
 
-    return snapshot.docs
+    final filtered = snapshot.docs
         .map((doc) => CreneauHoraire.fromFirestore(doc))
         .where((c) =>
             c.disponible &&
@@ -75,6 +178,20 @@ class SecretaireService {
             c.dateJour!.isAfter(startOfDay.subtract(const Duration(seconds: 1))) &&
             c.dateJour!.isBefore(endOfDay))
         .toList();
+
+    // Remove duplicates (in case batch was run multiple times for the same times)
+    final seen = <String>{};
+    final uniqueSlots = <CreneauHoraire>[];
+    for (var slot in filtered) {
+      if (seen.add(slot.heureDebut)) {
+        uniqueSlots.add(slot);
+      }
+    }
+
+    // Sort chronologically
+    uniqueSlots.sort((a, b) => a.heureDebut.compareTo(b.heureDebut));
+
+    return uniqueSlots;
   }
 
   // ── Patients ───────────────────────────────────────────────────

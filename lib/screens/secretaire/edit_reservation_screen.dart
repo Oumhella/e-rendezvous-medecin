@@ -22,7 +22,7 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
   bool _initialized = false;
   bool _saving = false;
 
-  StatutRDV _selectedStatut = StatutRDV.enAttente;
+  StatutRDV _selectedStatut = StatutRDV.confirme;
   TypeVisite _selectedType = TypeVisite.cabinet;
   DateTime? _selectedDate;
 
@@ -407,7 +407,6 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
 
   Widget _statusDot(StatutRDV s) {
     final color = switch (s) {
-      StatutRDV.enAttente => Colors.orange,
       StatutRDV.confirme => Colors.green,
       StatutRDV.annule => Colors.red,
       StatutRDV.termine => Colors.grey,
@@ -422,7 +421,6 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
 
   String _statusLabel(StatutRDV s) {
     return switch (s) {
-      StatutRDV.enAttente => 'En attente',
       StatutRDV.confirme => 'Confirmé',
       StatutRDV.annule => 'Annulé',
       StatutRDV.termine => 'Terminé',

@@ -31,7 +31,7 @@ class DoctorService {
   static Stream<List<RendezVous>> getRendezVousStream(String medecinId) {
     return _db
         .collection('rendezVous')
-        .where('medecin_id', isEqualTo: medecinId)
+        .where('medecin_id', isEqualTo: _db.doc('medecin/$medecinId'))
         .snapshots()
         .map(
           (snapshot) => snapshot.docs
