@@ -6,6 +6,7 @@ import '../models/medecin.dart';
 import '../models/rendez_vous.dart';
 import '../models/patient.dart';
 import '../models/utilisateur.dart';
+import '../models/secretaire.dart';
 import '../models/enums.dart';
 
 class DoctorService {
@@ -25,6 +26,24 @@ class DoctorService {
         .get();
     if (query.docs.isEmpty) return null;
     return Medecin.fromFirestore(query.docs.first);
+  }
+
+  /// Récupère un médecin par son ID document.
+  static Future<Medecin?> getMedecinById(String medecinId) async {
+    final doc = await _db.collection('medecin').doc(medecinId).get();
+    if (!doc.exists) return null;
+    return Medecin.fromFirestore(doc);
+  }
+
+  /// Récupère la secrétaire associée à un médecin.
+  static Future<Secretaire?> getSecretaireByMedecinId(String medecinId) async {
+    final query = await _db
+        .collection('secretaire')
+        .where('medecin_id', isEqualTo: medecinId)
+        .limit(1)
+        .get();
+    if (query.docs.isEmpty) return null;
+    return Secretaire.fromFirestore(query.docs.first);
   }
 
   /// Stream temps-réel des rendez-vous d'un médecin.
@@ -62,6 +81,22 @@ class DoctorService {
     await _db.collection('rendezVous').doc(rdvId).update({
       'statut': enumToString(statut),
     });
+  }
+
+  /// Met à jour les informations du médecin.
+  static Future<void> updateMedecin(
+    String medecinId,
+    Map<String, dynamic> data,
+  ) async {
+    await _db.collection('medecin').doc(medecinId).update(data);
+  }
+
+  /// Met à jour les informations de l'utilisateur.
+  static Future<void> updateUtilisateur(
+    String utilisateurId,
+    Map<String, dynamic> data,
+  ) async {
+    await _db.collection('utilisateur').doc(utilisateurId).update(data);
   }
 
   static Future<List<Doctor>> getDoctors({
