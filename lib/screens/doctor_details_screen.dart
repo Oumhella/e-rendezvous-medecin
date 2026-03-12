@@ -5,6 +5,9 @@ import '../widgets/common_widgets.dart' as common;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'reservation_screen.dart';
+import 'patient_appointments_screen.dart';
+import 'patient_profile_screen.dart';
+import 'reclamation_screen.dart';
 
 class DoctorDetailsScreen extends StatefulWidget {
   final Doctor doctor;
@@ -475,15 +478,62 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   }
 
   Widget _buildActionButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildCircleButton(Icons.phone_outlined, _requireLogin),
-        const SizedBox(width: 24),
-        _buildCircleButton(Icons.videocam_outlined, _requireLogin),
-        const SizedBox(width: 24),
-        _buildCircleButton(Icons.chat_bubble_outline, _requireLogin),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _buildCircleButton(Icons.phone_outlined, _requireLogin),
+              const SizedBox(width: 24),
+              _buildCircleButton(Icons.videocam_outlined, _requireLogin),
+              const SizedBox(width: 24),
+              _buildCircleButton(Icons.chat_bubble_outline, _requireLogin),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Bouton Réclamation
+          GestureDetector(
+            onTap: () {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) {
+                _requireLogin();
+                return;
+              }
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => ReclamationScreen(doctor: widget.doctor),
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.red.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.red.withOpacity(0.25)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: const [
+                  Icon(Icons.flag_outlined, color: Colors.red, size: 18),
+                  SizedBox(width: 8),
+                  Text(
+                    'Faire une réclamation',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1133,13 +1183,37 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     Icons.calendar_today,
                     'Mes RDV',
                     false,
-                    _requireLogin,
+                    () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user == null) {
+                        _requireLogin();
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PatientAppointmentsScreen(),
+                          ),
+                        );
+                      }
+                    },
                   ),
                   _buildNavItem(
                     Icons.person_outline,
                     'Profil',
                     false,
-                    _requireLogin,
+                    () {
+                      final user = FirebaseAuth.instance.currentUser;
+                      if (user == null) {
+                        _requireLogin();
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PatientProfileScreen(),
+                          ),
+                        );
+                      }
+                    },
                   ),
                 ],
               ),

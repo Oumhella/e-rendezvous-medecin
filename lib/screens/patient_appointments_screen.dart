@@ -5,6 +5,7 @@ import '../models/rendez_vous.dart';
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'add_avis_screen.dart';
 
 class PatientAppointmentsScreen extends StatefulWidget {
   const PatientAppointmentsScreen({super.key});
@@ -304,6 +305,51 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                     ]
                   ],
                 ),
+                // Bouton "Ajouter un avis" pour les RDV terminés
+                if (rdv.statut.name.toLowerCase() == 'termine') ...[
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () async {
+                        // Récupère le nom du médecin
+                        final doctorData = snapshot.data ?? {};
+                        final prenom = doctorData['prenom'] ?? '';
+                        final nom = doctorData['nom'] ?? '';
+                        final medecinNom =
+                            'Dr. $prenom $nom'.trim();
+
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => AddAvisScreen(
+                              medecinId: rdv.medecinId,
+                              medecinNom: medecinNom,
+                              rendezVousId: rdv.id,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.star_outline,
+                          color: Colors.white, size: 18),
+                      label: const Text(
+                        'Ajouter un avis',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green.shade600,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
