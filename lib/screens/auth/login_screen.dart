@@ -88,7 +88,11 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
 
-      // ── FLUX PATIENT / AUTRE (à implémenter) ──
+      // ── FLUX PATIENT ──
+      // Si ni secrétaire ni médecin → c'est un patient, on redirige vers HomeScreen
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
     } catch (e) {
       if (mounted) _showError(e.toString().replaceAll('Exception: ', ''));
       await _authService.logout();
