@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/secretaire_service.dart';
@@ -99,6 +100,35 @@ class _LoginScreenState extends State<LoginScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
+  }
+
+  // ── CONNEXION GOOGLE ───────────────────────────────
+  Future<void> _signInWithGoogle() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      print('Début connexion Google...');
+      final error = await _authService.signInWithGoogle();
+      
+      if (error != null) {
+        print('Erreur retournée: $error');
+        if (mounted) _showError(error);
+        setState(() => _isLoading = false);
+        return;
+      }
+
+      print('Connexion Google réussie, redirection...');
+      // Rediriger vers l'écran approprié après connexion Google réussie
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/home');
+      }
+      
+    } catch (e) {
+      print('Exception捕捉: ${e.toString()}');
+      if (mounted) _showError('Erreur lors de la connexion Google: ${e.toString()}');
+    } finally {
+      setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -248,6 +278,83 @@ class _LoginScreenState extends State<LoginScreen> {
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Séparateur "OU"
+                  Row(
+                    children: [
+                      const Expanded(child: Divider(color: Colors.grey)),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Text(
+                          'OU',
+                          style: TextStyle(
+                            color: Colors.grey[600],
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                      const Expanded(child: Divider(color: Colors.grey)),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  // Bouton Google Sign-In
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: Colors.grey[300]!),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: _isLoading ? null : _signInWithGoogle,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: const Icon(
+                                Icons.account_circle,
+                                color: Color(0xFF4285F4),
+                                size: 20,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Text(
+                              'Continuer avec Google',
+                              style: TextStyle(
+                                color: Colors.grey[700],
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

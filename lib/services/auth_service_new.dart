@@ -7,31 +7,13 @@ import 'dart:convert';
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn(
-    scopes: ['email'], // Limiter les scopes pour éviter People API
-  );
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
 
   // Utilisateur connecté en ce moment
   User? get currentUser => _auth.currentUser;
 
   // Stream pour écouter les changements de connexion
   Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  // ── CONNEXION ────────────────────────────────────────
-  Future<String?> login({
-    required String email,
-    required String password,
-  }) async {
-    try {
-      await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return null; // null = succès
-    } on FirebaseAuthException catch (e) {
-      return _handleError(e.code);
-    }
-  }
 
   // ── INSCRIPTION ──────────────────────────────────────
   Future<String?> register({
@@ -67,10 +49,10 @@ class AuthService {
         'email': email,
         'telephone': telephone,
         'password': hashedPassword, // Mot de passe crypté
-
         'dateInscription': FieldValue.serverTimestamp(),
         'statut': 'actif',
         'photoProfil': '',
+        'provider': 'email',
       });
 
       // Sauvegarder dans collection patient
@@ -88,73 +70,83 @@ class AuthService {
     }
   }
 
+  // ── CONNEXION ────────────────────────────────────────
+  Future<String?> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return null; // null = succès
+    } on FirebaseAuthException catch (e) {
+      return _handleError(e.code);
+    }
+  }
+
   // ── CONNEXION GOOGLE ───────────────────────────────
   Future<String?> signInWithGoogle() async {
     try {
-      // 1. Connexion avec Google
+      // 1. Déconnexion de Google au cas où l'utilisateur est connecté
+      await _googleSignIn.signOut();
+
+      // 2. Connexion avec Google
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
         return 'Connexion Google annulée';
       }
 
-      print('Google user connecté: ${googleUser.email}');
-
-      // 2. Obtenir les authentifications
+      // 3. Obtenir les authentifications
       final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final AuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // 3. Connexion avec Firebase
+      // 4. Connexion avec Firebase
       final UserCredential userCredential = await _auth.signInWithCredential(credential);
       final User? user = userCredential.user;
 
       if (user != null) {
-        print('Firebase user créé: ${user.uid}');
-        
-        // 4. Vérifier si l'utilisateur existe déjà dans Firestore
+        // 5. Vérifier si l'utilisateur existe déjà dans Firestore
         final DocumentSnapshot userDoc = await _db.collection('utilisateur').doc(user.uid).get();
         
         if (!userDoc.exists) {
-          print('Création du profil utilisateur...');
-          // 5. Créer le profil utilisateur s'il n'existe pas
+          // 6. Créer le profil utilisateur s'il n'existe pas
           await _db.collection('utilisateur').doc(user.uid).set({
             'idU': user.uid,
-            'nom': googleUser.displayName?.split(' ').last ?? 'Utilisateur',
-            'prenom': googleUser.displayName?.split(' ').first ?? 'Google',
+            'nom': user.displayName?.split(' ').last ?? '',
+            'prenom': user.displayName?.split(' ').first ?? '',
             'email': user.email,
             'telephone': '',
             'dateInscription': FieldValue.serverTimestamp(),
             'statut': 'actif',
             'photoProfil': user.photoURL ?? '',
-            'provider': 'google',
+            'provider': 'google', // Indiquer que c'est une connexion Google
           });
 
-          // 6. Créer le profil patient
+          // 7. Créer le profil patient
           await _db.collection('patient').doc(user.uid).set({
             'actif': false,
             'adresse': '',
             'cin': '',
-            'dateNaissance': Timestamp.now(),
+            'dateNaissance': Timestamp.now(), // Date par défaut
           });
-          print('Profil créé avec succès');
-        } else {
-          print('Profil utilisateur existe déjà');
         }
       }
 
       return null; // Succès
     } catch (e) {
-      print('Erreur Google Sign-In: ${e.toString()}');
       return 'Erreur lors de la connexion Google: ${e.toString()}';
     }
   }
 
   // ── DÉCONNEXION ──────────────────────────────────────
   Future<void> logout() async {
-    await _googleSignIn.signOut();
     await _auth.signOut();
+    await _googleSignIn.signOut();
   }
 
   // ── MOT DE PASSE OUBLIÉ ──────────────────────────────
@@ -182,6 +174,8 @@ class AuthService {
         return 'Adresse email invalide.';
       case 'too-many-requests':
         return 'Trop de tentatives. Réessayez plus tard.';
+      case 'network-request-failed':
+        return 'Erreur de connexion. Vérifiez votre internet.';
       default:
         return 'Une erreur est survenue. Réessayez.';
     }
