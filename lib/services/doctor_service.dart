@@ -2,10 +2,102 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import '../models/doctor.dart';
+import '../models/medecin.dart';
+import '../models/rendez_vous.dart';
+import '../models/patient.dart';
+import '../models/utilisateur.dart';
+import '../models/secretaire.dart';
+import '../models/enums.dart';
 
 class DoctorService {
   static final FirebaseFirestore _db = FirebaseFirestore.instance;
   static final FirebaseAuth _auth = FirebaseAuth.instance;
+
+  // ── MÉTHODES DASHBOARD MÉDECIN ──────────────────────────────────────
+
+  /// Récupère le document `medecin` lié à un utilisateur (pour le login).
+  static Future<Medecin?> getMedecinByUtilisateurId(
+    String utilisateurId,
+  ) async {
+    final query = await _db
+        .collection('medecin')
+        .where('utilisateur_id', isEqualTo: utilisateurId)
+        .limit(1)
+        .get();
+    if (query.docs.isEmpty) return null;
+    return Medecin.fromFirestore(query.docs.first);
+  }
+
+  /// Récupère un médecin par son ID document.
+  static Future<Medecin?> getMedecinById(String medecinId) async {
+    final doc = await _db.collection('medecin').doc(medecinId).get();
+    if (!doc.exists) return null;
+    return Medecin.fromFirestore(doc);
+  }
+
+  /// Récupère la secrétaire associée à un médecin.
+  static Future<Secretaire?> getSecretaireByMedecinId(String medecinId) async {
+    final query = await _db
+        .collection('secretaire')
+        .where('medecin_id', isEqualTo: medecinId)
+        .limit(1)
+        .get();
+    if (query.docs.isEmpty) return null;
+    return Secretaire.fromFirestore(query.docs.first);
+  }
+
+  /// Stream temps-réel des rendez-vous d'un médecin.
+  static Stream<List<RendezVous>> getRendezVousStream(String medecinId) {
+    return _db
+        .collection('rendezVous')
+        .where('medecin_id', isEqualTo: _db.doc('medecin/$medecinId'))
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => RendezVous.fromFirestore(doc))
+              .toList(),
+        );
+  }
+
+  /// Récupère un patient par son ID.
+  static Future<Patient?> getPatientById(String patientId) async {
+    final doc = await _db.collection('patient').doc(patientId).get();
+    if (!doc.exists) return null;
+    return Patient.fromFirestore(doc);
+  }
+
+  /// Récupère un utilisateur par son ID.
+  static Future<Utilisateur?> getUtilisateurById(String utilisateurId) async {
+    final doc = await _db.collection('utilisateur').doc(utilisateurId).get();
+    if (!doc.exists) return null;
+    return Utilisateur.fromFirestore(doc);
+  }
+
+  /// Met à jour le statut d'un rendez-vous.
+  static Future<void> updateRendezVousStatut(
+    String rdvId,
+    StatutRDV statut,
+  ) async {
+    await _db.collection('rendezVous').doc(rdvId).update({
+      'statut': enumToString(statut),
+    });
+  }
+
+  /// Met à jour les informations du médecin.
+  static Future<void> updateMedecin(
+    String medecinId,
+    Map<String, dynamic> data,
+  ) async {
+    await _db.collection('medecin').doc(medecinId).update(data);
+  }
+
+  /// Met à jour les informations de l'utilisateur.
+  static Future<void> updateUtilisateur(
+    String utilisateurId,
+    Map<String, dynamic> data,
+  ) async {
+    await _db.collection('utilisateur').doc(utilisateurId).update(data);
+  }
 
   static Future<List<Doctor>> getDoctors({
     String? specialite,
@@ -20,7 +112,7 @@ class DoctorService {
       // D'abord essayer sans filtre pour voir si la collection existe
       QuerySnapshot allDocs = await _db.collection('medecin').get();
       print('Total documents dans collection medecin: ${allDocs.docs.length}');
-      
+
       // Ensuite essayer SANS le filtre actif pour éviter l'erreur d'index
       QuerySnapshot querySnapshot = await _db.collection('medecin').get();
 
@@ -131,16 +223,22 @@ class DoctorService {
     List<Doctor> filteredDoctors = List.from(doctors);
 
     if (specialite != null && specialite.isNotEmpty) {
-      filteredDoctors = filteredDoctors.where((d) =>
-        d.specialite.toLowerCase().contains(specialite.toLowerCase())
-      ).toList();
+      filteredDoctors = filteredDoctors
+          .where(
+            (d) =>
+                d.specialite.toLowerCase().contains(specialite.toLowerCase()),
+          )
+          .toList();
     }
 
     if (query != null && query.isNotEmpty) {
-      filteredDoctors = filteredDoctors.where((d) =>
-        d.fullName.toLowerCase().contains(query.toLowerCase()) ||
-        d.specialite.toLowerCase().contains(query.toLowerCase())
-      ).toList();
+      filteredDoctors = filteredDoctors
+          .where(
+            (d) =>
+                d.fullName.toLowerCase().contains(query.toLowerCase()) ||
+                d.specialite.toLowerCase().contains(query.toLowerCase()),
+          )
+          .toList();
     }
 
     if (disponibilite == 'Aujourd\'hui') {
@@ -148,27 +246,37 @@ class DoctorService {
     }
 
     if (typeConsultation == 'Présentiel') {
-      filteredDoctors = filteredDoctors.where((d) => true).toList(); // Tous les médecins font présentiel
+      filteredDoctors = filteredDoctors
+          .where((d) => true)
+          .toList(); // Tous les médecins font présentiel
     } else if (typeConsultation == 'Téléconsultation') {
-      filteredDoctors = filteredDoctors.where((d) => d.consultationEnLigne).toList();
+      filteredDoctors = filteredDoctors
+          .where((d) => d.consultationEnLigne)
+          .toList();
     }
 
     if (secteur != null && secteur.isNotEmpty) {
-      filteredDoctors = filteredDoctors.where((d) => d.secteur == secteur).toList();
+      filteredDoctors = filteredDoctors
+          .where((d) => d.secteur == secteur)
+          .toList();
     }
 
     if (tarifConsultation != null) {
       if (tarifConsultation == '< 100') {
         filteredDoctors = filteredDoctors.where((d) => d.tarif < 100).toList();
       } else if (tarifConsultation == '100-300') {
-        filteredDoctors = filteredDoctors.where((d) => d.tarif >= 100 && d.tarif <= 300).toList();
+        filteredDoctors = filteredDoctors
+            .where((d) => d.tarif >= 100 && d.tarif <= 300)
+            .toList();
       } else if (tarifConsultation == '300+') {
         filteredDoctors = filteredDoctors.where((d) => d.tarif > 300).toList();
       }
     }
 
     if (noteMin != null) {
-      filteredDoctors = filteredDoctors.where((d) => d.noteMoyenne >= noteMin).toList();
+      filteredDoctors = filteredDoctors
+          .where((d) => d.noteMoyenne >= noteMin)
+          .toList();
     }
 
     return filteredDoctors;
@@ -187,7 +295,8 @@ class DoctorService {
         actif: true,
         consultationEnLigne: true,
         anneesExperience: 12,
-        biographies: 'Cardiologue expérimentée spécialisée en maladies cardiovasculaires',
+        biographies:
+            'Cardiologue expérimentée spécialisée en maladies cardiovasculaires',
         certificatExercice: 'certificats/martin_sophie.pdf',
         cin: 'AB123456',
         cv: 'cv/martin_sophie.pdf',
@@ -197,7 +306,11 @@ class DoctorService {
         tarifConsultationFromDB: 150,
         latitude: 48.8466,
         longitude: 2.2860,
-        disponibilites: ['Lundi 14h-18h', 'Mercredi 9h-12h', 'Vendredi 14h-18h'],
+        disponibilites: [
+          'Lundi 14h-18h',
+          'Mercredi 9h-12h',
+          'Vendredi 14h-18h',
+        ],
       ),
       Doctor(
         id: '2',
@@ -260,23 +373,23 @@ class DoctorService {
   static Future<void> initializeMockData() async {
     try {
       print('Début initialisation des données mockées...');
-      
+
       // Vérifier si la collection est vide
       QuerySnapshot snapshot = await _db.collection('medecin').limit(1).get();
       print('Documents existants: ${snapshot.docs.length}');
-      
+
       if (snapshot.docs.isEmpty) {
         print('Collection vide, ajout des données mockées...');
         // Ajouter les données mockées
         List<Doctor> mockDoctors = _getMockDoctors();
-        
+
         for (Doctor doctor in mockDoctors) {
           Map<String, dynamic> doctorData = doctor.toJson();
           doctorData.remove('id'); // Firestore génère l'ID
           print('Ajout du médecin: ${doctor.fullName}');
           await _db.collection('medecin').add(doctorData);
         }
-        
+
         print('Données mockées initialisées avec succès');
       } else {
         print('Collection contient déjà des données');
@@ -293,7 +406,15 @@ class DoctorService {
   }
 
   static List<String> getSpecialites() {
-    return ['Généraliste', 'Cardiologue', 'Dermatologue', 'Pédiatre', 'Gynécologue', 'Ophtalmologue', 'Psychiatre'];
+    return [
+      'Généraliste',
+      'Cardiologue',
+      'Dermatologue',
+      'Pédiatre',
+      'Gynécologue',
+      'Ophtalmologue',
+      'Psychiatre',
+    ];
   }
 
   static List<String> getSecteurs() {
@@ -314,18 +435,9 @@ class DoctorService {
     debugPrint('🌱 Seeding test data…');
 
     // ── 1. Create Firebase Auth users ──────────────────────────────
-    await _createAuthUser(
-      email: 'secretaire@test.com',
-      password: 'test1234',
-    );
-    await _createAuthUser(
-      email: 'medecin@test.com',
-      password: 'test1234',
-    );
-    await _createAuthUser(
-      email: 'patient@test.com',
-      password: 'test1234',
-    );
+    await _createAuthUser(email: 'secretaire@test.com', password: 'test1234');
+    await _createAuthUser(email: 'medecin@test.com', password: 'test1234');
+    await _createAuthUser(email: 'patient@test.com', password: 'test1234');
 
     // ── 2. Utilisateurs ────────────────────────────────────────────
     final secUserId = 'user_secretaire_01';
@@ -433,8 +545,20 @@ class DoctorService {
     final today = DateTime.now();
     final tomorrow = today.add(const Duration(days: 1));
 
-    final slots = ['08:00', '08:30', '09:00', '09:30', '10:00', '10:30',
-                   '11:00', '14:00', '14:30', '15:00', '15:30', '16:00'];
+    final slots = [
+      '08:00',
+      '08:30',
+      '09:00',
+      '09:30',
+      '10:00',
+      '10:30',
+      '11:00',
+      '14:00',
+      '14:30',
+      '15:00',
+      '15:30',
+      '16:00',
+    ];
 
     for (int i = 0; i < slots.length - 1; i += 1) {
       // Today slots
@@ -443,7 +567,8 @@ class DoctorService {
         'heureFin': _addMinutes(slots[i], 30),
         'disponible': true,
         'dateJour': Timestamp.fromDate(
-            DateTime(today.year, today.month, today.day)),
+          DateTime(today.year, today.month, today.day),
+        ),
         'medecin_id': medId,
       });
       // Tomorrow slots
@@ -452,7 +577,8 @@ class DoctorService {
         'heureFin': _addMinutes(slots[i], 30),
         'disponible': true,
         'dateJour': Timestamp.fromDate(
-            DateTime(tomorrow.year, tomorrow.month, tomorrow.day)),
+          DateTime(tomorrow.year, tomorrow.month, tomorrow.day),
+        ),
         'medecin_id': medId,
       });
     }
@@ -460,7 +586,8 @@ class DoctorService {
     // ── 7. Sample rendez-vous ──────────────────────────────────────
     await _db.collection('rendezVous').add({
       'dateHeure': Timestamp.fromDate(
-          DateTime(today.year, today.month, today.day, 9, 0)),
+        DateTime(today.year, today.month, today.day, 9, 0),
+      ),
       'typeVisite': 'cabinet',
       'statut': 'confirme',
       'notes': 'Contrôle de routine',
@@ -472,7 +599,8 @@ class DoctorService {
 
     await _db.collection('rendezVous').add({
       'dateHeure': Timestamp.fromDate(
-          DateTime(today.year, today.month, today.day, 14, 30)),
+        DateTime(today.year, today.month, today.day, 14, 30),
+      ),
       'typeVisite': 'teleconsultation',
       'statut': 'enAttente',
       'notes': 'Suivi post-opératoire',
@@ -484,7 +612,8 @@ class DoctorService {
 
     await _db.collection('rendezVous').add({
       'dateHeure': Timestamp.fromDate(
-          DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 10, 0)),
+        DateTime(tomorrow.year, tomorrow.month, tomorrow.day, 10, 0),
+      ),
       'typeVisite': 'domicile',
       'statut': 'enAttente',
       'notes': '',

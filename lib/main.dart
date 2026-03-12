@@ -8,14 +8,16 @@ import 'screens/auth/login_screen.dart';
 import 'screens/secretaire/dashboard_screen.dart';
 import 'screens/secretaire/add_reservation_screen.dart';
 import 'screens/secretaire/edit_reservation_screen.dart';
+import 'screens/secretaire/creneaux_screen.dart';
+import 'screens/secretaire/add_creneau_screen.dart';
+import 'screens/medecin/medecin_dashboard_screen.dart';
+import 'screens/medecin/detail_rdv_screen.dart';
 import 'screens/auth/splash_screen.dart';
 import 'services/seed_data.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   // Initialize French locale for date formatting
   await initializeDateFormatting('fr_FR', null);
 
@@ -42,9 +44,11 @@ class MyApp extends StatelessWidget {
         '/dashboard': (_) => const DashboardScreen(),
         '/add-reservation': (_) => const AddReservationScreen(),
         '/edit-reservation': (_) => const EditReservationScreen(),
+        '/creneaux': (_) => const CreneauxScreen(),
+        '/add-creneau': (_) => const AddCreneauScreen(),
+        '/medecin-dashboard': (_) => const MedecinDashboardScreen(),
+        '/medecin-detail-rdv': (_) => const DetailRdvScreen(),
       },
     );
   }
 }
-        
-     

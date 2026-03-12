@@ -41,7 +41,7 @@ class CreneauHoraire {
       'disponible': disponible,
       'dateJour':
           dateJour != null ? Timestamp.fromDate(dateJour!) : null,
-      'medecin_id': medecinId,
+      'medecin_id': FirebaseFirestore.instance.doc('medecin/$medecinId'),
     };
   }
 

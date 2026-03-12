@@ -22,7 +22,7 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
   bool _initialized = false;
   bool _saving = false;
 
-  StatutRDV _selectedStatut = StatutRDV.enAttente;
+  StatutRDV _selectedStatut = StatutRDV.confirme;
   TypeVisite _selectedType = TypeVisite.cabinet;
   DateTime? _selectedDate;
 
@@ -118,6 +118,41 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Rendez-vous mis à jour ✓'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  Future<void> _quickUpdateStatus(StatutRDV newStatus) async {
+    setState(() {
+      _selectedStatut = newStatus;
+      _saving = true;
+    });
+
+    try {
+      final updated = _rdv.copyWith(
+        statut: newStatus,
+        typeVisite: _selectedType,
+        dateHeure: _selectedDate,
+        notes: _notesCtrl.text.trim(),
+      );
+      await _service.updateRendezVous(updated);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Rendez-vous : ${_statusLabel(newStatus)} ✓'),
             backgroundColor: Colors.green,
           ),
         );
@@ -358,16 +393,51 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
 
               const SizedBox(height: 24),
 
-              // ── Notes ───────────────────────────────
-              _SectionTitle(
-                  icon: Icons.note_alt_outlined, title: 'Notes'),
-              const SizedBox(height: 10),
-              TextFormField(
-                controller: _notesCtrl,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  hintText: 'Notes supplémentaires',
+              // ── Quick Actions ───────────────────────
+              _SectionTitle(icon: Icons.bolt_rounded, title: 'Actions Rapides'),
+              const SizedBox(height: 12),
+              SizedBox(
+                height: 50,
+                child: ElevatedButton.icon(
+                  onPressed: _saving ? null : () => _quickUpdateStatus(StatutRDV.termine),
+                  icon: const Icon(Icons.done_all_rounded, size: 20),
+                  label: const Text('Marquer comme Terminé'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.navyDark,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                  ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : () => _quickUpdateStatus(StatutRDV.absent),
+                      icon: const Icon(Icons.person_off_rounded, size: 20),
+                      label: const Text('Absent'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.deepOrange,
+                        side: const BorderSide(color: Colors.deepOrange),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _saving ? null : () => _quickUpdateStatus(StatutRDV.annule),
+                      icon: const Icon(Icons.cancel_outlined, size: 20),
+                      label: const Text('Annuler'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.red),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                ],
               ),
 
               const SizedBox(height: 36),
@@ -407,7 +477,6 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
 
   Widget _statusDot(StatutRDV s) {
     final color = switch (s) {
-      StatutRDV.enAttente => Colors.orange,
       StatutRDV.confirme => Colors.green,
       StatutRDV.annule => Colors.red,
       StatutRDV.termine => Colors.grey,
@@ -422,7 +491,6 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
 
   String _statusLabel(StatutRDV s) {
     return switch (s) {
-      StatutRDV.enAttente => 'En attente',
       StatutRDV.confirme => 'Confirmé',
       StatutRDV.annule => 'Annulé',
       StatutRDV.termine => 'Terminé',

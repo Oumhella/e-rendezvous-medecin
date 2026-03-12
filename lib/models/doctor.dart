@@ -51,6 +51,16 @@ class Doctor {
   String get noteText => '${noteMoyenne.toStringAsFixed(1)}';
   String get experienceText => '$anneesExperience ans d\'expérience';
 
+  String get initials {
+    String p = prenom.trim();
+    String n = nom.trim();
+    String res = '';
+    if (p.isNotEmpty) res += p[0];
+    if (n.isNotEmpty) res += n[0];
+    if (res.isEmpty) res = 'DR';
+    return res.toUpperCase();
+  }
+
   factory Doctor.fromJson(Map<String, dynamic> json) {
     // Gérer le cas où specialite_id est une DocumentReference
     String specialite = 'Généraliste';
@@ -157,7 +167,9 @@ class Doctor {
   double get distance => _calculateDistance();
   String get distanceText => '${distance.toStringAsFixed(1)} km';
   bool get disponibleAujourdhui => actif;
-  int get tarif => tarifConsultationFromDB > 0 ? tarifConsultationFromDB : dureConsultationMin * 2; // Utilise la vraie valeur ou estimation
+  int get tarif => tarifConsultationFromDB > 0
+      ? tarifConsultationFromDB
+      : dureConsultationMin * 2; // Utilise la vraie valeur ou estimation
   int get tarifConsultation => tarif; // Alias pour la compatibilité
   String get tarifText => '$tarif DH'; // Affiche le tarif réel en DH
   String get secteur => _determineSecteur();
@@ -187,9 +199,11 @@ class Doctor {
 
   String _determineSecteur() {
     // Logique pour déterminer le secteur selon la localisation
-    if (adresseCabinet.contains('Paris 7') || adresseCabinet.contains('Paris 8')) {
+    if (adresseCabinet.contains('Paris 7') ||
+        adresseCabinet.contains('Paris 8')) {
       return 'Secteur 1';
-    } else if (adresseCabinet.contains('Paris 13') || adresseCabinet.contains('Paris 14')) {
+    } else if (adresseCabinet.contains('Paris 13') ||
+        adresseCabinet.contains('Paris 14')) {
       return 'Secteur 2';
     }
     return 'Secteur 3';

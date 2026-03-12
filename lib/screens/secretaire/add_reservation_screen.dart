@@ -127,13 +127,16 @@ class _AddReservationScreenState extends State<AddReservationScreen> {
         id: '',
         dateHeure: dateHeure,
         typeVisite: _selectedType,
-        statut: StatutRDV.enAttente,
+        statut: StatutRDV.confirme,
         notes: _notesCtrl.text.trim(),
         medecinId: _medecinId, // auto-linked doctor
         patientId: patientId,
       );
 
-      await _service.addRendezVous(rdv);
+      await _service.addRendezVous(
+        rdv,
+        creneauHeureDebut: _selectedCreneau,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
