@@ -139,61 +139,94 @@ class _ReservationScreenState extends State<ReservationScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9FAFA),
-      appBar: AppBar(
-        title: const Text(
-          'Réserver un rendez-vous',
-          style: TextStyle(
-            color: AppColors.navyDark,
-            fontWeight: FontWeight.bold,
-            fontSize: 20,
+      backgroundColor: AppColors.cream,
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildDoctorSummary(),
+                    const SizedBox(height: 20),
+                    _buildForm(),
+                    const SizedBox(height: 32),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.navyDark),
-          onPressed: () => Navigator.pop(context),
-        ),
+          _buildBottomButton(),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+    );
+  }
+
+  Widget _buildHeader() {
+    return ClipPath(
+      clipper: WaveClipper(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.only(bottom: 40),
+        decoration: const BoxDecoration(color: AppColors.tealDark),
+        child: SafeArea(
+          bottom: false,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildDoctorSummary(),
-              const SizedBox(height: 24),
-              _buildForm(),
+              Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              const Text(
+                'Réserver un rendez-vous',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  fontFamily: 'Serif',
+                ),
+              ),
+              const SizedBox(height: 20),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(20),
+    );
+  }
+
+  Widget _buildBottomButton() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      color: Colors.transparent,
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          height: 54,
           child: ElevatedButton(
             onPressed: _isSubmitting ? null : _submitReservation,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF1B2A36), // Deep dark blue
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
+              backgroundColor: AppColors.orangeAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              elevation: 0,
             ),
             child: _isSubmitting
                 ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(color: Colors.black87, strokeWidth: 2),
                   )
                 : const Text(
                     'Confirmer la réservation',
                     style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                      color: Colors.black87,
                     ),
                   ),
           ),
@@ -206,100 +239,89 @@ class _ReservationScreenState extends State<ReservationScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
+      padding: const EdgeInsets.all(20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 80,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1B2A36), // Top dark area of card
-              borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-            ),
-            alignment: Alignment.bottomLeft,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Transform.translate(
-              offset: const Offset(0, 30),
-              child: Container(
-                padding: const EdgeInsets.all(3),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(2),
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.orangeAccent,
                   shape: BoxShape.circle,
                 ),
                 child: CircleAvatar(
-                  radius: 30,
+                  radius: 28,
                   backgroundColor: Colors.white,
-                  backgroundImage: widget.doctor.photoUrl != null
-                      ? NetworkImage(widget.doctor.photoUrl!)
-                      : null,
+                  backgroundImage: widget.doctor.photoUrl != null ? NetworkImage(widget.doctor.photoUrl!) : null,
                   child: widget.doctor.photoUrl == null
                       ? Text(
                           widget.doctor.fullName.substring(0, 2).toUpperCase(),
-                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.navyDark),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.tealDark),
                         )
                       : null,
                 ),
               ),
-            ),
-          ),
-          const SizedBox(height: 35),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  widget.doctor.fullName,
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  widget.doctor.specialite,
-                  style: const TextStyle(color: Color(0xFF5CA3B3), fontSize: 14),
-                ),
-                const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 12),
-                Row(
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Icon(Icons.calendar_today_outlined, size: 20, color: Colors.grey),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('DATE', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                        Text(widget.dateStr, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      ],
+                    Text(
+                      widget.doctor.fullName,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppColors.tealDark),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.doctor.specialite,
+                      style: const TextStyle(color: AppColors.textGray, fontSize: 14),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Icon(Icons.access_time_outlined, size: 20, color: Colors.grey),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('HEURE', style: TextStyle(fontSize: 10, color: Colors.grey, fontWeight: FontWeight.bold)),
-                        Text(widget.time, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-              ],
-            ),
+              ),
+            ],
           ),
+          const SizedBox(height: 20),
+          const Divider(),
+          const SizedBox(height: 16),
+          _buildSummaryInfo(Icons.calendar_today, 'DATE', widget.dateStr),
+          const SizedBox(height: 16),
+          _buildSummaryInfo(Icons.access_time, 'HEURE', widget.time),
         ],
       ),
+    );
+  }
+
+  Widget _buildSummaryInfo(IconData icon, String label, String value) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: AppColors.cream,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: AppColors.orangeAccent, size: 18),
+        ),
+        const SizedBox(width: 16),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(label, style: const TextStyle(fontSize: 10, color: AppColors.textGray, fontWeight: FontWeight.bold)),
+            Text(value, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.tealDark)),
+          ],
+        ),
+      ],
     );
   }
 
@@ -307,16 +329,16 @@ class _ReservationScreenState extends State<ReservationScreen> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       child: Form(
         key: _formKey,
         child: Column(
@@ -325,20 +347,20 @@ class _ReservationScreenState extends State<ReservationScreen> {
             Row(
               children: [
                 Expanded(
-                  child: _buildInputField('Nom complet', 'Ex: Jean Dupont', _nameController),
+                  child: _buildInputField('Nom complet', 'Ex: Jean Dupont', _nameController, Icons.person_outline),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
-                  child: _buildInputField('Email', 'jean@example.com', _emailController, TextInputType.emailAddress),
+                  child: _buildInputField('Email', 'jean@example.com', _emailController, Icons.email_outlined, TextInputType.emailAddress),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            _buildInputField('Téléphone', '+212 6...', _phoneController, TextInputType.phone),
+            _buildInputField('Téléphone', '+212 6...', _phoneController, Icons.phone_android_outlined, TextInputType.phone),
             const SizedBox(height: 24),
             const Text(
               'Type de visite',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.navyDark),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.tealDark),
             ),
             const SizedBox(height: 12),
             Row(
@@ -356,15 +378,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
               children: const [
                 Text(
                   'Motif de consultation',
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.navyDark),
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.tealDark),
                 ),
-                Row(
-                  children: [
-                    Icon(Icons.auto_awesome, size: 14, color: Color(0xFF8B9EB4)),
-                    SizedBox(width: 4),
-                    Text('Assistant IA', style: TextStyle(color: Color(0xFF8B9EB4), fontSize: 12, fontWeight: FontWeight.w500)),
-                  ],
-                )
               ],
             ),
             const SizedBox(height: 12),
@@ -375,7 +390,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                 hintText: 'Expliquez brièvement la raison de votre visite...',
                 hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
                 filled: true,
-                fillColor: const Color(0xFFF9FAFA),
+                fillColor: AppColors.offWhite,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide(color: Colors.grey[300]!),
@@ -391,15 +406,16 @@ class _ReservationScreenState extends State<ReservationScreen> {
             const SizedBox(height: 24),
             const Text(
               'Pièce jointe (optionnel)',
-              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.navyDark),
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.tealDark),
             ),
             const SizedBox(height: 12),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 24),
               decoration: BoxDecoration(
-                color: const Color(0xFFF9FAFA),
-                border: Border.all(color: Colors.grey[300]!, style: BorderStyle.solid),
+                color: AppColors.offWhite,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey[200]!, style: BorderStyle.solid),
               ),
               child: Column(
                 children: [
@@ -419,30 +435,35 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
   }
 
-  Widget _buildInputField(String label, String hint, TextEditingController controller, [TextInputType type = TextInputType.text]) {
+  Widget _buildInputField(String label, String hint, TextEditingController controller, IconData icon, [TextInputType type = TextInputType.text]) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
-          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.navyDark),
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.tealDark),
         ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
           keyboardType: type,
           decoration: InputDecoration(
+            prefixIcon: Icon(icon, color: AppColors.tealDark.withOpacity(0.5), size: 20),
             hintText: hint,
             hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: AppColors.offWhite,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(20),
-              borderSide: BorderSide(color: Colors.grey[200]!),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.tealDark, width: 1),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           ),
@@ -467,8 +488,8 @@ class _ReservationScreenState extends State<ReservationScreen> {
             color: isSelected ? Colors.white : Colors.white,
             borderRadius: BorderRadius.circular(20),
             border: Border.all(
-              color: isSelected ? const Color(0xFF1B2A36) : Colors.grey[300]!,
-              width: isSelected ? 1.5 : 1.0,
+              color: isSelected ? AppColors.orangeAccent : Colors.grey[200]!,
+              width: 1.5,
             ),
             boxShadow: isSelected
                 ? [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))]
@@ -480,11 +501,38 @@ class _ReservationScreenState extends State<ReservationScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? const Color(0xFF1B2A36) : Colors.black87,
+              color: isSelected ? AppColors.tealDark : AppColors.textGray,
             ),
           ),
         ),
       ),
     );
   }
+}
+
+class WaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 40);
+    
+    var firstControlPoint = Offset(size.width / 4, size.height);
+    var firstEndPoint = Offset(size.width / 2.25, size.height - 30);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
+        firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint =
+        Offset(size.width - (size.width / 3.25), size.height - 65);
+    var secondEndPoint = Offset(size.width, size.height - 20);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
+        secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

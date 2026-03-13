@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' hide Path;
 import '../models/doctor.dart';
 import '../theme/app_theme.dart';
 import '../widgets/common_widgets.dart' as common;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'reservation_screen.dart';
+import 'patient_appointments_screen.dart';
+import 'patient_profile_screen.dart';
+import 'reclamation_screen.dart';
 
 class DoctorDetailsScreen extends StatefulWidget {
   final Doctor doctor;
@@ -228,7 +233,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.cream,
       body: Column(
         children: [
           Expanded(
@@ -236,16 +241,15 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
               child: Column(
                 children: [
                   _buildHeader(),
-                  _buildStatsRow(),
-                  const SizedBox(height: 24),
-                  _buildActionButtons(),
-                  _buildDivider(),
+                  const SizedBox(height: 16),
                   _buildAboutSection(),
-                  _buildDivider(),
+                  const SizedBox(height: 16),
                   _buildInformationSection(),
-                  _buildDivider(),
+                  const SizedBox(height: 16),
+                  _buildMapSection(),
+                  const SizedBox(height: 16),
                   _buildAvailabilitySection(),
-                  _buildDivider(),
+                  const SizedBox(height: 16),
                   _buildReviewsSection(),
                   const SizedBox(height: 32),
                 ],
@@ -258,72 +262,183 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
     );
   }
 
+
   Widget _buildHeader() {
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.bottomCenter,
-      children: [
-        Container(
-          height: 180,
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF7A949A), // grayish blue top
-                Color(0xFFD3E7ED), // light blue bottom
-              ],
-            ),
-          ),
-          child: SafeArea(
-            child: Align(
-              alignment: Alignment.topLeft,
-              child: IconButton(
-                icon: const Icon(Icons.arrow_back, color: Colors.white),
-                onPressed: () => Navigator.pop(context),
+    return ClipPath(
+      clipper: WaveClipper(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.only(bottom: 60),
+        decoration: const BoxDecoration(color: AppColors.tealDark),
+        child: Column(
+          children: [
+            SafeArea(
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
               ),
             ),
-          ),
-        ),
-        Positioned(
-          bottom: -45, // half of the avatar size (90)
-          child: Container(
-            padding: const EdgeInsets.all(4),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              shape: BoxShape.circle,
+            // Avatar with Orange Border
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                color: AppColors.orangeAccent,
+                shape: BoxShape.circle,
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(4),
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                ),
+                child: CircleAvatar(
+                  radius: 40,
+                  backgroundColor: Colors.white,
+                  child: widget.doctor.photoUrl != null
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(40),
+                          child: Image.network(
+                            widget.doctor.photoUrl!,
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                          ),
+                        )
+                      : Text(
+                          widget.doctor.prenom.isNotEmpty && widget.doctor.nom.isNotEmpty
+                              ? widget.doctor.prenom[0] + widget.doctor.nom[0]
+                              : 'DR',
+                          style: const TextStyle(
+                            color: AppColors.tealDark,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 28,
+                          ),
+                        ),
+                ),
+              ),
             ),
-            child: CircleAvatar(
-              radius: 40,
-              backgroundColor: Colors.white,
-              child: widget.doctor.photoUrl != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(40),
-                      child: Image.network(
-                        widget.doctor.photoUrl!,
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      ),
-                    )
-                  : Text(
-                      widget.doctor.prenom.isNotEmpty &&
-                              widget.doctor.nom.isNotEmpty
-                          ? widget.doctor.prenom[0] + widget.doctor.nom[0]
-                          : 'DR',
-                      style: const TextStyle(
-                        color: AppColors.navyDark,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 28,
+            const SizedBox(height: 16),
+            // Name
+            Text(
+              'Dr. ${widget.doctor.prenom} ${widget.doctor.nom}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Serif',
+              ),
+            ),
+            const SizedBox(height: 4),
+            // Specialty
+            Text(
+              widget.doctor.specialite,
+              style: TextStyle(
+                color: AppColors.lightBlue.withOpacity(0.8),
+                fontSize: 16,
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Badges Row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildHeaderBadge(
+                  icon: Icons.star_border,
+                  label: _averageRating > 0 ? _averageRating.toStringAsFixed(1) : widget.doctor.noteText,
+                  color: AppColors.orangeAccent,
+                ),
+                const SizedBox(width: 12),
+                _buildHeaderBadge(
+                  icon: Icons.verified_user_outlined,
+                  label: 'Validé',
+                  color: Colors.white.withOpacity(0.2),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Price Button
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.orangeAccent,
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Text(
+                '${widget.doctor.tarifText} MAD',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            // Bouton Signaler un problème
+            GestureDetector(
+              onTap: () {
+                final user = FirebaseAuth.instance.currentUser;
+                if (user == null) {
+                  _requireLogin();
+                  return;
+                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ReclamationScreen(doctor: widget.doctor),
+                  ),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: Colors.white.withOpacity(0.4)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.report_problem_outlined, color: Colors.white, size: 16),
+                    SizedBox(width: 8),
+                    Text(
+                      'Signaler un problème',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
                       ),
                     ),
+                  ],
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-        // Spacer below to accommodate the avatar
-        const Positioned(bottom: -70, child: SizedBox.shrink()),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildHeaderBadge({required IconData icon, required String label, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          ),
+        ],
+      ),
     );
   }
 
@@ -354,13 +469,13 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFC7E0EB),
+            color: AppColors.beigePeach,
             borderRadius: BorderRadius.circular(20),
           ),
           child: Text(
             widget.doctor.specialite,
             style: const TextStyle(
-              color: AppColors.navyDark,
+              color: AppColors.tealDark,
               fontSize: 14,
               fontWeight: FontWeight.w500,
             ),
@@ -454,20 +569,20 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppColors.navyDark, size: 24),
+          Icon(icon, color: AppColors.tealDark, size: 24),
           const SizedBox(height: 8),
           Text(
             title,
             style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
-              color: Colors.black87,
+              color: AppColors.textBlack,
             ),
           ),
           const SizedBox(height: 4),
           Text(
             subtitle,
-            style: const TextStyle(fontSize: 12, color: Colors.grey),
+            style: const TextStyle(fontSize: 12, color: AppColors.textGray),
           ),
         ],
       ),
@@ -475,16 +590,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   }
 
   Widget _buildActionButtons() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        _buildCircleButton(Icons.phone_outlined, _requireLogin),
-        const SizedBox(width: 24),
-        _buildCircleButton(Icons.videocam_outlined, _requireLogin),
-        const SizedBox(width: 24),
-        _buildCircleButton(Icons.chat_bubble_outline, _requireLogin),
-      ],
-    );
+    return const SizedBox.shrink(); // Replaced by Section Tabs in this new design
   }
 
   Widget _buildCircleButton(IconData icon, VoidCallback onTap) {
@@ -494,10 +600,10 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         width: 56,
         height: 56,
         decoration: const BoxDecoration(
-          color: Color(0xFFC7E0EB), // light grayish blue
+          color: AppColors.tealDark,
           shape: BoxShape.circle,
         ),
-        child: Icon(icon, color: Colors.black87, size: 24),
+        child: Icon(icon, color: Colors.white, size: 24),
       ),
     );
   }
@@ -510,45 +616,40 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   }
 
   Widget _buildAboutSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5)),
+        ],
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'À propos',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Colors.black87,
-            ),
+            'Biographie',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.tealDark),
           ),
           const SizedBox(height: 12),
           Text(
             widget.doctor.biographies.isNotEmpty
                 ? widget.doctor.biographies
-                : 'Spécialiste en soins dentaires esthétiques et restaurateurs. Technologies de pointe pour des soins de qualité supérieure.',
-            style: TextStyle(
-              fontSize: 15,
-              color: Colors.grey[600],
-              height: 1.5,
-            ),
+                : 'Spécialiste expérimenté(e). Technologies de pointe pour des soins de qualité supérieure.',
+            style: TextStyle(fontSize: 15, color: Colors.grey[600], height: 1.6),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 20),
           Row(
-            children: const [
-              Text(
-                'Voir plus',
-                style: TextStyle(
-                  color: AppColors.navyDark,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
+            children: [
+              const Icon(Icons.location_on_outlined, color: AppColors.tealDark, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${widget.doctor.adresse}, ${widget.doctor.ville}',
+                  style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.tealDark),
                 ),
-              ),
-              Icon(
-                Icons.keyboard_arrow_down,
-                color: AppColors.navyDark,
-                size: 18,
               ),
             ],
           ),
@@ -558,54 +659,120 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
   }
 
   Widget _buildInformationSection() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Informations',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.black87,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.email_outlined, _doctorEmail),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              Icons.phone_outlined,
-              widget.doctor.telephone.isNotEmpty
-                  ? widget.doctor.telephone
-                  : '+212 539 234 567',
-            ),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.location_on_outlined, widget.doctor.adresse),
-            const SizedBox(height: 16),
-            _buildInfoRow(Icons.location_city_outlined, widget.doctor.ville),
-            const SizedBox(height: 16),
-            _buildInfoRow(
-              Icons.description_outlined,
-              '${widget.doctor.tarifText} / consultation',
-            ),
-          ],
-        ),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Informations de contact',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.tealDark),
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(Icons.email_outlined, _doctorEmail),
+          const SizedBox(height: 16),
+          _buildInfoRow(
+            Icons.phone_outlined,
+            widget.doctor.telephone.isNotEmpty ? widget.doctor.telephone : '+212 539 234 567',
+          ),
+          const SizedBox(height: 16),
+          _buildInfoRow(Icons.access_time, '${widget.doctor.anneesExperience} ans d\'expérience'),
+        ],
       ),
     );
+  }
+
+  Widget _buildMapSection() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 15, offset: const Offset(0, 5)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Localisation',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.tealDark),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.offWhite, width: 2),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(18),
+              child: FlutterMap(
+                options: MapOptions(
+                  initialCenter: _getDoctorCoordinates(),
+                  initialZoom: 14.0,
+                  interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+                ),
+                children: [
+                  TileLayer(
+                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'e_rendezvous_medecin',
+                  ),
+                  MarkerLayer(
+                    markers: [
+                      Marker(
+                        point: _getDoctorCoordinates(),
+                        width: 40,
+                        height: 40,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.orangeAccent,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                            boxShadow: [
+                              BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 6),
+                            ],
+                          ),
+                          child: const Icon(Icons.location_on, color: Colors.white, size: 20),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            widget.doctor.adresse,
+            style: const TextStyle(fontSize: 14, color: AppColors.textGray, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
+  LatLng _getDoctorCoordinates() {
+    // Simulation de coordonnées basées sur la ville (comme dans home_screen)
+    if (widget.doctor.adresse.toLowerCase().contains('casablanca')) {
+      return const LatLng(33.5731, -7.5898);
+    } else if (widget.doctor.adresse.toLowerCase().contains('rabat')) {
+      return const LatLng(34.0209, -6.8416);
+    } else if (widget.doctor.adresse.toLowerCase().contains('marrakech')) {
+      return const LatLng(31.6295, -7.9811);
+    }
+    return const LatLng(33.9716, -6.8428); // Position par défaut
   }
 
   Widget _buildInfoRow(IconData icon, String text) {
@@ -703,9 +870,9 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     width: 60,
                     margin: const EdgeInsets.only(right: 12),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF2B3A4A) : Colors.white,
+                      color: isSelected ? AppColors.orangeAccent : Colors.white,
                       borderRadius: BorderRadius.circular(16),
-                      border: isSelected ? null : Border.all(color: Colors.grey[200]!),
+                      border: isSelected ? null : Border.all(color: AppColors.beigeGray),
                       boxShadow: isSelected ? [] : [
                         BoxShadow(
                           color: Colors.black.withOpacity(0.02),
@@ -788,7 +955,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         decoration: BoxDecoration(
           color: !isAvailable 
               ? Colors.grey[200] 
-              : isSelected ? const Color(0xFF2B3A4A) : const Color(0xFFC7E0EB), // Light blue background
+              : isSelected ? AppColors.orangeAccent : AppColors.beigePeach,
           borderRadius: BorderRadius.circular(16),
           border: !isAvailable ? Border.all(color: Colors.grey[300]!) : null,
         ),
@@ -798,7 +965,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
           style: TextStyle(
             color: !isAvailable 
                 ? Colors.grey[400] 
-                : isSelected ? Colors.white : const Color(0xFF2B3A4A),
+                : isSelected ? Colors.white : AppColors.tealDark,
             fontWeight: FontWeight.w500,
             fontSize: 14,
             decoration: !isAvailable ? TextDecoration.lineThrough : null,
@@ -860,7 +1027,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                           5,
                           (index) => Icon(
                             index < _averageRating.round() ? Icons.star : Icons.star_border,
-                            color: Colors.orange,
+                            color: AppColors.orangeAccent,
                             size: 16,
                           ),
                         ),
@@ -931,7 +1098,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                   flex: (percentage * 100).toInt(),
                   child: Container(
                     decoration: BoxDecoration(
-                      color: Colors.orange,
+                      color: AppColors.orangeAccent,
                       borderRadius: BorderRadius.circular(4),
                     ),
                   ),
@@ -983,11 +1150,11 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: const Color(0xFFC7E0EB),
+                backgroundColor: AppColors.beigePeach,
                 child: Text(
                   initial,
                   style: const TextStyle(
-                    color: Color(0xFF2B3A4A),
+                    color: AppColors.tealDark,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -1018,7 +1185,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                   5,
                   (index) => Icon(
                     index < rating ? Icons.star : Icons.star_border,
-                    color: Colors.orange,
+                    color: AppColors.orangeAccent,
                     size: 16,
                   ),
                 ),
@@ -1099,7 +1266,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _selectedTime != null ? const Color(0xFF1B2A36) : const Color(0xFF8B9EB4),
+                    backgroundColor: _selectedTime != null ? AppColors.orangeAccent : AppColors.inactiveGray,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(25),
                     ),
@@ -1118,33 +1285,58 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             ),
             Container(height: 1, color: Colors.grey[200]),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(
-                    Icons.home_outlined,
-                    'Accueil',
-                    false,
-                    () => Navigator.pop(context),
-                  ),
-                  _buildNavItem(Icons.search, 'Recherche', false, () {}),
-                  _buildNavItem(
-                    Icons.calendar_today,
-                    'Mes RDV',
-                    false,
-                    _requireLogin,
-                  ),
-                  _buildNavItem(
-                    Icons.person_outline,
-                    'Profil',
-                    false,
-                    _requireLogin,
-                  ),
+                  _buildNavItem(Icons.home_outlined, 'Accueil', false, () => Navigator.of(context).popUntil((route) => route.isFirst)),
+                  _buildNavItem(Icons.search, 'Recherche', false, () => Navigator.of(context).popUntil((route) => route.isFirst)),
+                  _buildCentralNavItem(),
+                  _buildNavItem(Icons.calendar_today_outlined, 'Mes RDV', false, () {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      _requireLogin();
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const PatientAppointmentsScreen()));
+                    }
+                  }),
+                  _buildNavItem(Icons.person_outline, 'Profil', false, () {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      _requireLogin();
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const PatientProfileScreen()));
+                    }
+                  }),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCentralNavItem() {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: AppColors.orangeAccent,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 28,
         ),
       ),
     );
@@ -1163,20 +1355,47 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         children: [
           Icon(
             icon,
-            color: isActive ? AppColors.navyDark : const Color(0xFF8B9EB4),
-            size: 24,
+            color: isActive ? AppColors.tealDark : AppColors.inactiveGray,
+            size: 22,
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-              color: isActive ? AppColors.navyDark : const Color(0xFF8B9EB4),
+              fontSize: 10,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              color: isActive ? AppColors.tealDark : AppColors.inactiveGray,
             ),
           ),
         ],
       ),
     );
   }
+}
+
+class WaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 40);
+    
+    var firstControlPoint = Offset(size.width / 4, size.height);
+    var firstEndPoint = Offset(size.width / 2.25, size.height - 30);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
+        firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint =
+        Offset(size.width - (size.width / 3.25), size.height - 65);
+    var secondEndPoint = Offset(size.width, size.height - 20);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
+        secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
