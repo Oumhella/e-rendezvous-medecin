@@ -3,7 +3,8 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
-import 'screens/home_screen.dart';
+import 'screens/admin/admin_dashboard_screen.dart';
+import 'screens/admin/admin_doctors_screen.dart';
 import 'screens/auth/login_screen.dart';
 import 'screens/auth/register_role_screen.dart';
 import 'screens/auth/register_patient_screen.dart';
@@ -56,7 +57,9 @@ class MyApp extends StatelessWidget {
         '/register': (_) => const RegisterRoleScreen(),
         '/register-patient': (_) => const RegisterPatientScreen(),
         '/register-medecin': (_) => const RegisterMedecinScreen(),
-        '/home': (_) => const HomeScreen(),
+        '/admin': (_) => const AdminDashboardScreen(),
+        '/admin/doctors': (_) => const AdminDoctorsScreen(),
+        '/home': (_) => const AdminDashboardScreen(), // Route de compatibilité
         '/dashboard': (_) => const DashboardScreen(),
         '/add-reservation': (_) => const AddReservationScreen(),
         '/edit-reservation': (_) => const EditReservationScreen(),
@@ -88,7 +91,7 @@ class AuthWrapper extends StatelessWidget {
         
         // Si l'utilisateur est connecté
         if (snapshot.hasData) {
-          return const HomeScreen();
+          return const AdminDashboardScreen();
         }
         
         // Si l'utilisateur n'est pas connecté, afficher l'onboarding
