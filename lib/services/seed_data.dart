@@ -13,12 +13,12 @@ class SeedData {
 
   /// Main entry point – safe to call repeatedly.
   static Future<void> seedTestData() async {
-    // Check if already seeded - TEMPORAIREMENT DÉSACTIVÉ POUR RECÉRER
-    // final metaDoc = await _db.collection('_meta').doc('seeded').get();
-    // if (metaDoc.exists) {
-    //   debugPrint('✅ Test data already seeded — skipping.');
-    //   return;
-    // }
+    // Check if already seeded
+    final metaDoc = await _db.collection('_meta').doc('seeded').get();
+    if (metaDoc.exists) {
+      debugPrint('✅ Test data already seeded — skipping.');
+      return;
+    }
 
     debugPrint('🌱 Seeding test data…');
 
