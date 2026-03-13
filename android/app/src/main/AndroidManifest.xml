@@ -1,4 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Permission Internet pour Google Sign-In -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
     <application
         android:label="e_rendezvous_medecin"
         android:name="${applicationName}"

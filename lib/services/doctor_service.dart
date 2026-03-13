@@ -517,6 +517,7 @@ class DoctorService {
       'adresseCabinet': '12 Rue Mohammed V, Casablanca',
       'ville': 'Casablanca',
       'statutMedecin': 'valide',
+      'dateCreation': FieldValue.serverTimestamp(),
       'cv': '',
       'diplome': 'Doctorat en Médecine',
       'certificatExercice': 'CE-2024-001',
@@ -527,6 +528,29 @@ class DoctorService {
       'anneesExperience': 10,
       'consultationEnLigne': true,
       'dateValidationCompte': Timestamp.now(),
+      'utilisateur_id': medUserId,
+      'specialite_id': specId,
+    });
+
+    // ── 4.1. Médecin en attente pour tests admin ────────────────────────
+    final medPendingId = 'med_pending_01';
+    await _db.collection('medecin').doc(medPendingId).set({
+      'cin': 'PENDING123',
+      'numeroDordre': 'ORD-PENDING-001',
+      'adresseCabinet': '123 Rue Test, Casablanca',
+      'ville': 'Casablanca',
+      'statutMedecin': 'en_attente', // Important pour tests admin
+      'dateCreation': FieldValue.serverTimestamp(), // Ajouter date de création
+      'cv': '',
+      'diplome': 'Doctorat en Test',
+      'certificatExercice': 'CE-PENDING-001',
+      'dureeConsultationMin': 30,
+      'tarifConsultation': 150.0,
+      'noteMoyenne': 0.0,
+      'biographie': 'Médecin en attente de validation pour tests admin.',
+      'anneesExperience': 5,
+      'consultationEnLigne': true,
+      'dateValidationCompte': null,
       'utilisateur_id': medUserId,
       'specialite_id': specId,
     });
