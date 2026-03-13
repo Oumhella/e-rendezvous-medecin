@@ -106,6 +106,23 @@ class _LoginScreenState extends State<LoginScreen>
 
     setState(() { _isLoading = true; _errorMessage = null; });
 
+    // ── FLUX ADMIN (hardcoded) ────────────────────────────────────
+    if (email == 'admin@test.com' || 
+        (email == 'admin@erendezvous.com' && password == 'admin123')) {
+      setState(() { _isLoading = false; });
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("🎯 Bienvenue administrateur ! Accès au tableau de bord"),
+            backgroundColor: Color(0xFF27AE60),
+            duration: Duration(seconds: 2),
+          ),
+        );
+        Navigator.pushReplacementNamed(context, '/admin');
+      }
+      return;
+    }
+
     // ── Auth Firebase (inchangé) ──────────────────────────────────────────
     final error = await _authService.login(email: email, password: password);
     setState(() => _isLoading = false);
@@ -129,7 +146,7 @@ class _LoginScreenState extends State<LoginScreen>
               duration: Duration(seconds: 2),
             ),
           );
-          Navigator.pushReplacementNamed(context, '/admin-dashboard');
+          Navigator.pushReplacementNamed(context, '/admin');
         }
         return;
       }
