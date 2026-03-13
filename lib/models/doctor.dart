@@ -22,6 +22,8 @@ class Doctor {
   final double latitude;
   final double longitude;
   final List<String> disponibilites;
+  final String? statutMedecin; // Ajout pour admin
+  final Timestamp? dateCreation; // Ajout pour admin
 
   Doctor({
     required this.id,
@@ -45,6 +47,8 @@ class Doctor {
     required this.latitude,
     required this.longitude,
     required this.disponibilites,
+    this.statutMedecin,
+    this.dateCreation,
   });
 
   String get fullName => 'Dr. $prenom $nom';
@@ -130,6 +134,10 @@ class Doctor {
       latitude: (json['latitude'] ?? 33.5731).toDouble(), // Casablanca par défaut
       longitude: (json['longitude'] ?? -7.5898).toDouble(),
       disponibilites: List<String>.from(json['disponibilites'] ?? ['08:00', '09:00', '10:00']),
+      statutMedecin: json['statutMedecin']?.toString(), // Ajout pour admin
+      dateCreation: json['dateCreation'] is Timestamp 
+          ? json['dateCreation'] as Timestamp
+          : Timestamp.now(), // Ajout pour admin
     );
   }
 
@@ -155,6 +163,8 @@ class Doctor {
       'tarifConsultation': tarifConsultationFromDB,
       'latitude': latitude,
       'longitude': longitude,
+      'statutMedecin': statutMedecin,
+      'dateCreation': dateCreation,
       'disponibilites': disponibilites,
     };
   }

@@ -64,7 +64,7 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
       
       try {
         final creneauxQuery = await db.collection('creneaux')
-            .where('medecin_id', isEqualTo: widget.doctor.id)
+            .where('medecin_id', isEqualTo: db.doc('medecin/${widget.doctor.id}'))
             .get();
 
         Map<DateTime, List<Map<String, dynamic>>> groupedSlots = {};
