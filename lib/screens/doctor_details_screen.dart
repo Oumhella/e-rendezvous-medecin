@@ -1285,57 +1285,58 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
             ),
             Container(height: 1, color: Colors.grey[200]),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildNavItem(
-                    Icons.home_outlined,
-                    'Accueil',
-                    false,
-                    () => Navigator.pop(context),
-                  ),
-                  _buildNavItem(Icons.search, 'Recherche', false, () {}),
-                  _buildNavItem(
-                    Icons.calendar_today,
-                    'Mes RDV',
-                    false,
-                    () {
-                      final user = FirebaseAuth.instance.currentUser;
-                      if (user == null) {
-                        _requireLogin();
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PatientAppointmentsScreen(),
-                          ),
-                        );
-                      }
-                    },
-                  ),
-                  _buildNavItem(
-                    Icons.person_outline,
-                    'Profil',
-                    false,
-                    () {
-                      final user = FirebaseAuth.instance.currentUser;
-                      if (user == null) {
-                        _requireLogin();
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PatientProfileScreen(),
-                          ),
-                        );
-                      }
-                    },
-                  ),
+                  _buildNavItem(Icons.home_outlined, 'Accueil', false, () => Navigator.of(context).popUntil((route) => route.isFirst)),
+                  _buildNavItem(Icons.search, 'Recherche', false, () => Navigator.of(context).popUntil((route) => route.isFirst)),
+                  _buildCentralNavItem(),
+                  _buildNavItem(Icons.calendar_today_outlined, 'Mes RDV', false, () {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      _requireLogin();
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const PatientAppointmentsScreen()));
+                    }
+                  }),
+                  _buildNavItem(Icons.person_outline, 'Profil', false, () {
+                    final user = FirebaseAuth.instance.currentUser;
+                    if (user == null) {
+                      _requireLogin();
+                    } else {
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const PatientProfileScreen()));
+                    }
+                  }),
                 ],
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCentralNavItem() {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: AppColors.orangeAccent,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 28,
         ),
       ),
     );
@@ -1354,16 +1355,16 @@ class _DoctorDetailsScreenState extends State<DoctorDetailsScreen> {
         children: [
           Icon(
             icon,
-            color: isActive ? AppColors.orangeAccent : AppColors.inactiveGray,
-            size: 24,
+            color: isActive ? AppColors.tealDark : AppColors.inactiveGray,
+            size: 22,
           ),
           const SizedBox(height: 4),
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-              color: isActive ? AppColors.orangeAccent : AppColors.inactiveGray,
+              fontSize: 10,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              color: isActive ? AppColors.tealDark : AppColors.inactiveGray,
             ),
           ),
         ],

@@ -40,17 +40,12 @@ class _AddAvisScreenState extends State<AddAvisScreen> {
       final user = FirebaseAuth.instance.currentUser!;
       final db = FirebaseFirestore.instance;
 
-      // Références Firestore (structure exacte de la collection avis)
       final medecinRef = db.collection('medecin').doc(widget.medecinId);
       final patientRef = db.collection('utilisateur').doc(user.uid);
 
-      // Récupère le nom du patient depuis la collection utilisateur
       String patientNom = user.displayName ?? 'Patient';
       try {
-        final q = await db
-            .collection('utilisateur')
-            .doc(user.uid)
-            .get();
+        final q = await db.collection('utilisateur').doc(user.uid).get();
         if (q.exists) {
           final d = q.data()!;
           final prenom = d['prenom'] ?? '';
@@ -62,8 +57,8 @@ class _AddAvisScreenState extends State<AddAvisScreen> {
       } catch (_) {}
 
       await db.collection('avis').add({
-        'medecin_id': medecinRef,          // référence /medecin/{id}
-        'patient_id': patientRef,           // référence /utilisateur/{uid}
+        'medecin_id': medecinRef,
+        'patient_id': patientRef,
         'patientNom': patientNom,
         'note': _note,
         'commentaire': _commentaireController.text.trim(),
@@ -78,8 +73,7 @@ class _AddAvisScreenState extends State<AddAvisScreen> {
             content: const Text('✅ Avis publié avec succès !'),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
@@ -96,8 +90,7 @@ class _AddAvisScreenState extends State<AddAvisScreen> {
         content: Text(msg),
         backgroundColor: Colors.redAccent,
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
@@ -105,236 +98,326 @@ class _AddAvisScreenState extends State<AddAvisScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.offWhite,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: AppColors.navyDark),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Donner mon avis',
-          style: TextStyle(
-              color: AppColors.navyDark, fontWeight: FontWeight.bold),
-        ),
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Doctor card
-            Container(
+      backgroundColor: AppColors.cream,
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: AppColors.gradient,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: const Icon(Icons.person, color: Colors.white, size: 28),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.medecinNom,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        const Text(
-                          'Votre médecin consulté',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // Note stars
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
               child: Column(
                 children: [
-                  const Text(
-                    'Quelle est votre note ?',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.navyDark,
-                    ),
-                  ),
+                  _buildDoctorSummary(),
                   const SizedBox(height: 20),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(5, (i) {
-                      final star = i + 1;
-                      return GestureDetector(
-                        onTap: () => setState(() => _note = star),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 6),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            child: Icon(
-                              star <= _note ? Icons.star : Icons.star_border,
-                              color:
-                                  star <= _note ? Colors.amber : Colors.grey[300],
-                              size: 44,
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _noteLabel(_note),
-                    style: TextStyle(
-                      color: Colors.grey[600],
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+                  _buildRatingSection(),
+                  const SizedBox(height: 20),
+                  _buildCommentSection(),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
+          ),
+          _buildBottomButton(),
+        ],
+      ),
+    );
+  }
 
-            const SizedBox(height: 20),
-
-            // Commentaire
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Votre commentaire',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.navyDark,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _commentaireController,
-                    maxLines: 4,
-                    maxLength: 500,
-                    decoration: InputDecoration(
-                      hintText: 'Partagez votre expérience avec ce médecin...',
-                      hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-                      filled: true,
-                      fillColor: AppColors.offWhite,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(
-                            color: AppColors.navyDark, width: 1.5),
-                      ),
-                      contentPadding: const EdgeInsets.all(16),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            SizedBox(
-              width: double.infinity,
-              height: 54,
-              child: ElevatedButton.icon(
-                onPressed: _isSubmitting ? null : _submit,
-                icon: _isSubmitting
-                    ? const SizedBox(
-                        height: 18,
-                        width: 18,
-                        child: CircularProgressIndicator(
-                            color: Colors.white, strokeWidth: 2))
-                    : const Icon(Icons.send_rounded, color: Colors.white),
-                label: const Text(
-                  'Publier mon avis',
-                  style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.navyDark,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
-                  elevation: 0,
+  Widget _buildHeader() {
+    return ClipPath(
+      clipper: WaveClipper(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.only(bottom: 40),
+        decoration: const BoxDecoration(color: AppColors.tealDark),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
                 ),
               ),
-            ),
-            const SizedBox(height: 40),
-          ],
+              const Text(
+                'Donner mon avis',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  fontFamily: 'Serif',
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  String _noteLabel(int note) {
+  Widget _buildDoctorSummary() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: AppColors.cream,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: const Icon(Icons.person_outline, color: AppColors.tealDark, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.medecinNom,
+                  style: const TextStyle(
+                    color: AppColors.tealDark,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Votre médecin consulté',
+                  style: TextStyle(
+                    color: AppColors.textGray,
+                    fontSize: 13,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRatingSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Text(
+            'Quelle est votre note ?',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppColors.tealDark,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(5, (i) {
+              final star = i + 1;
+              return GestureDetector(
+                onTap: () => setState(() => _note = star),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      star <= _note ? Icons.star : Icons.star_border,
+                      color: star <= _note ? Colors.amber : Colors.grey[300],
+                      size: 40,
+                    ),
+                  ),
+                ),
+              );
+            }),
+          ),
+          const SizedBox(height: 12),
+          _buildNoteLabel(_note),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCommentSection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Votre commentaire',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppColors.tealDark,
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextField(
+            controller: _commentaireController,
+            maxLines: 4,
+            maxLength: 500,
+            decoration: InputDecoration(
+              hintText: 'Partagez votre expérience avec ce médecin...',
+              hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
+              filled: true,
+              fillColor: AppColors.offWhite,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide.none,
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(color: AppColors.tealDark, width: 1.5),
+              ),
+              contentPadding: const EdgeInsets.all(16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomButton() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      color: Colors.transparent,
+      child: SafeArea(
+        child: SizedBox(
+          width: double.infinity,
+          height: 54,
+          child: ElevatedButton(
+            onPressed: _isSubmitting ? null : _submit,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.orangeAccent,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+              elevation: 0,
+            ),
+            child: _isSubmitting
+                ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(color: Colors.black87, strokeWidth: 2))
+                : const Text(
+                    'Publier mon avis',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.black87),
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNoteLabel(int note) {
+    IconData icon;
+    Color color;
+    String label;
+
     switch (note) {
       case 1:
-        return '😞  Très mauvais';
+        icon = Icons.sentiment_very_dissatisfied;
+        color = Colors.red;
+        label = 'Très mauvais';
+        break;
       case 2:
-        return '😕  Mauvais';
+        icon = Icons.sentiment_dissatisfied;
+        color = Colors.orange;
+        label = 'Mauvais';
+        break;
       case 3:
-        return '😐  Moyen';
+        icon = Icons.sentiment_neutral;
+        color = Colors.amber;
+        label = 'Moyen';
+        break;
       case 4:
-        return '😊  Bien';
+        icon = Icons.sentiment_satisfied;
+        color = Colors.lightGreen;
+        label = 'Bien';
+        break;
       case 5:
-        return '🤩  Excellent !';
+        icon = Icons.sentiment_very_satisfied;
+        color = Colors.green;
+        label = 'Excellent !';
+        break;
       default:
-        return '';
+        return const SizedBox.shrink();
     }
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(icon, color: color, size: 24),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
   }
+}
+
+class WaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 40);
+    
+    var firstControlPoint = Offset(size.width / 4, size.height);
+    var firstEndPoint = Offset(size.width / 2.25, size.height - 30);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
+        firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint =
+        Offset(size.width - (size.width / 3.25), size.height - 65);
+    var secondEndPoint = Offset(size.width, size.height - 20);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
+        secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }

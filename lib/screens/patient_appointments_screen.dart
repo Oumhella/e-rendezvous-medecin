@@ -6,6 +6,7 @@ import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'add_avis_screen.dart';
+import 'patient_profile_screen.dart';
 
 class PatientAppointmentsScreen extends StatefulWidget {
   const PatientAppointmentsScreen({super.key});
@@ -57,6 +58,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.cream,
+      bottomNavigationBar: _buildBottomNavigation(),
       body: Column(
         children: [
           _buildHeader(),
@@ -404,6 +406,86 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
       default:
         return statut;
     }
+  }
+
+  Widget _buildBottomNavigation() {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildNavItem(Icons.home_outlined, 'Accueil', false, () => Navigator.of(context).popUntil((route) => route.isFirst)),
+            _buildNavItem(Icons.search, 'Recherche', false, () => Navigator.of(context).popUntil((route) => route.isFirst)),
+            _buildCentralNavItem(),
+            _buildNavItem(Icons.calendar_today, 'Mes RDV', true, () {}),
+            _buildNavItem(Icons.person_outline, 'Profil', false, () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const PatientProfileScreen()));
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCentralNavItem() {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).popUntil((route) => route.isFirst),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: const BoxDecoration(
+          color: AppColors.orangeAccent,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black26,
+              blurRadius: 8,
+              offset: Offset(0, 4),
+            ),
+          ],
+        ),
+        child: const Icon(
+          Icons.add,
+          color: Colors.white,
+          size: 28,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, bool isActive, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isActive ? AppColors.tealDark : AppColors.inactiveGray,
+            size: 22,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+              color: isActive ? AppColors.tealDark : AppColors.inactiveGray,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
