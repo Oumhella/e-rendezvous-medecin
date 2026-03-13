@@ -142,13 +142,13 @@ class _HistoriqueRdvScreenState extends State<HistoriqueRdvScreen> {
           _selectedStatutFilter = selected ? statut : null;
         });
       },
-      selectedColor: color.withValues(alpha: 0.15),
+      selectedColor: color.withOpacity(0.15),
       labelStyle: TextStyle(
         color: isSelected ? color : Colors.black87,
         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
       ),
       side: isSelected
-          ? BorderSide(color: color.withValues(alpha: 0.5))
+          ? BorderSide(color: color.withOpacity(0.5))
           : const BorderSide(color: Colors.black12),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
     );
@@ -285,7 +285,7 @@ class _StatusChipSimple extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(

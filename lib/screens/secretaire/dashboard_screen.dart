@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../services/auth_service.dart';
 import '../../services/secretaire_service.dart';
 import '../../models/rendez_vous.dart';
 import '../../models/enums.dart';
 import '../../theme/app_theme.dart';
+import 'weekly_planner_screen.dart';
+import 'templates/templates_list_screen.dart';
 
-/// Secretary dashboard — summary cards + quick actions.
-/// Receives `medecinId` as a route argument (the doctor this secretary works for).
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
@@ -19,9 +20,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final _authService = AuthService();
   final _service = SecretaireService();
   int _currentIndex = 0;
+  DateTime _selectedDate = DateTime.now();
 
   late String _medecinId;
+  String _doctorName = '';
   bool _initialized = false;
+  bool _loadingInfo = true;
 
   @override
   void didChangeDependencies() {
@@ -29,230 +33,292 @@ class _DashboardScreenState extends State<DashboardScreen> {
     if (!_initialized) {
       final args = ModalRoute.of(context)?.settings.arguments;
       if (args == null) {
-        // Si les arguments sont perdus (ex: refresh de la page web),
-        // on redirige vers le login.
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, '/login');
         });
         return;
       }
       _medecinId = args as String;
+      _loadDoctorInfo();
       _initialized = true;
+    }
+  }
+
+  Future<void> _loadDoctorInfo() async {
+    final info = await _service.getMedecinFullInfo(_medecinId);
+    if (info != null && info['utilisateur'] != null) {
+      setState(() {
+        _doctorName = info['utilisateur']['nom'] ?? '';
+        _loadingInfo = false;
+      });
+    } else {
+      setState(() => _loadingInfo = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Tableau de bord'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout_rounded),
-            tooltip: 'Déconnexion',
-            onPressed: _logout,
-          ),
-        ],
+      backgroundColor: AppColors.cream,
+      body: switch(_currentIndex) {
+        0 => _buildDashboard(),
+        1 => WeeklyPlannerScreen(medecinId: _medecinId, embedded: true),
+        2 => _buildReservationsList(),
+        3 => TemplatesListScreen(medecinId: _medecinId, embedded: true),
+        _ => _buildDashboard(),
+      },
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+            )
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (i) => setState(() => _currentIndex = i),
+          selectedItemColor: AppColors.orangeAccent,
+          unselectedItemColor: AppColors.inactiveGray,
+          backgroundColor: AppColors.white,
+          type: BottomNavigationBarType.fixed,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.dashboard_rounded),
+              label: 'Accueil',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_month_rounded),
+              label: 'Planning',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.list_alt_rounded),
+              label: 'Réservations',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.style_rounded),
+              label: 'Modèles',
+            ),
+          ],
+        ),
       ),
-      body: _currentIndex == 0 ? _buildDashboard() : _buildReservationsList(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            label: 'Accueil',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month_rounded),
-            label: 'Réservations',
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('Nouveau RDV'),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: AppColors.orangeAccent,
+        foregroundColor: AppColors.white,
+        elevation: 4,
+        child: const Icon(Icons.add_rounded, size: 30),
         onPressed: () => Navigator.pushNamed(
           context,
           '/add-reservation',
           arguments: _medecinId,
         ),
       ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
   Widget _buildDashboard() {
-    return StreamBuilder<List<RendezVous>>(
-      stream: _service.getRendezVousStream(medecinId: _medecinId),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Erreur stream: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red)),
-          );
-        }
-        final rdvList = snapshot.data ?? [];
-
-        final today = DateTime.now();
-        final todayStr = DateFormat('yyyy-MM-dd').format(today);
-
-        final todayRdv = rdvList.where((r) =>
-            r.dateHeure != null &&
-            DateFormat('yyyy-MM-dd').format(r.dateHeure!) == todayStr);
-        final confirmes =
-            rdvList.where((r) => r.statut == StatutRDV.confirme);
-
-        return RefreshIndicator(
-          onRefresh: () async => setState(() {}),
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(16, 24, 16, 100),
-            children: [
-              // ── Greeting ────────────────────────────────
-              Text(
-                'Bonjour 👋',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                DateFormat.yMMMMEEEEd('fr_FR').format(today),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: AppColors.navyDark.withValues(alpha: 0.6),
-                    ),
-              ),
-              const SizedBox(height: 28),
-
-              // ── Stats Cards ─────────────────────────────
-              _StatCard(
-                icon: Icons.today_rounded,
-                label: "Aujourd'hui",
-                value: todayRdv.length.toString(),
-                color: AppColors.navyDark,
-              ),
-              _StatCard(
-                icon: Icons.check_circle_outline_rounded,
-                label: 'Confirmés',
-                value: confirmes.length.toString(),
-                color: Colors.green.shade700,
-              ),
-              _StatCard(
-                icon: Icons.event_note_rounded,
-                label: 'Total rendez-vous',
-                value: rdvList.length.toString(),
-                color: AppColors.lightBlue,
-                textColor: AppColors.navyDark,
-              ),
-
-              const SizedBox(height: 32),
-
-              // ── Quick Actions ───────────────────────────
-              Text(
-                'Actions rapides',
-                style: Theme.of(context).textTheme.titleLarge,
-              ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionButton(
-                      icon: Icons.calendar_month_rounded,
-                      label: 'Voir les\nréservations',
-                      onTap: () => setState(() => _currentIndex = 1),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _ActionButton(
-                      icon: Icons.add_circle_outline_rounded,
-                      label: 'Ajouter un\nrendez-vous',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/add-reservation',
-                        arguments: _medecinId,
+    return Column(
+      children: [
+        // --- Header Section ---
+        Stack(
+          children: [
+            ClipPath(
+              clipper: HeaderClipper(),
+              child: Container(
+                height: 240,
+                width: double.infinity,
+                decoration: const BoxDecoration(
+                  color: AppColors.tealDark,
+                ),
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 10),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const SizedBox(width: 40), // spacer
+                            Text(
+                              'Planning — Dr. $_doctorName',
+                              style: GoogleFonts.playfairDisplay(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.logout_rounded, color: Colors.white70),
+                              onPressed: _logout,
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  Expanded(
-                    child: _ActionButton(
-                      icon: Icons.edit_calendar_rounded,
-                      label: 'Gestion des\nCréneaux',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/creneaux',
-                        arguments: _medecinId,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _ActionButton(
-                      icon: Icons.auto_awesome_motion_rounded,
-                      label: 'Planification\nHebdo',
-                      onTap: () => Navigator.pushNamed(
-                        context,
-                        '/weekly-planner',
-                        arguments: _medecinId,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
+            // --- Date Selector ---
+            Positioned(
+              bottom: 10,
+              left: 0,
+              right: 0,
+              child: _buildDateSelector(),
+            ),
+          ],
+        ),
+
+        // --- Appointments List ---
+        Expanded(
+          child: StreamBuilder<List<RendezVous>>(
+            stream: _service.getRendezVousStream(medecinId: _medecinId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator(color: AppColors.orangeAccent));
+              }
+              final rdvList = snapshot.data ?? [];
+              final selectedDateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+              
+              final filteredRdv = rdvList.where((r) => 
+                r.dateHeure != null && 
+                DateFormat('yyyy-MM-dd').format(r.dateHeure!) == selectedDateStr
+              ).toList();
+
+              // Sort by hour
+              filteredRdv.sort((a,b) => a.dateHeure!.compareTo(b.dateHeure!));
+
+              if (filteredRdv.isEmpty) {
+                return _buildEmptyState();
+              }
+
+              return ListView.builder(
+                padding: const EdgeInsets.fromLTRB(20, 10, 20, 100),
+                itemCount: filteredRdv.length,
+                itemBuilder: (context, i) => _AppointmentCard(rdv: filteredRdv[i]),
+              );
+            },
           ),
-        );
-      },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDateSelector() {
+    return SizedBox(
+      height: 100,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: 14, // Show 2 weeks
+        itemBuilder: (context, i) {
+          final date = DateTime.now().add(Duration(days: i));
+          final isSelected = DateFormat('yyyy-MM-dd').format(date) == 
+                           DateFormat('yyyy-MM-dd').format(_selectedDate);
+          
+          return GestureDetector(
+            onTap: () => setState(() => _selectedDate = date),
+            child: Container(
+              width: 65,
+              margin: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.orangeAccent : AppColors.white,
+                borderRadius: BorderRadius.circular(35),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  )
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    DateFormat('E', 'fr').format(date).substring(0, 3),
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.textGray,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    DateFormat('d').format(date),
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.textBlack,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.event_available_rounded, size: 80, color: AppColors.tealMedium.withOpacity(0.2)),
+          const SizedBox(height: 16),
+          Text(
+            'Aucun rendez-vous prévu',
+            style: GoogleFonts.playfairDisplay(
+              fontSize: 20,
+              color: AppColors.tealDark.withOpacity(0.5),
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Cette journée est apparemment libre.',
+            style: TextStyle(color: AppColors.textGray.withOpacity(0.7)),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildReservationsList() {
-    return StreamBuilder<List<RendezVous>>(
-      stream: _service.getRendezVousStream(medecinId: _medecinId),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-            child: Text('Erreur: ${snapshot.error}',
-                style: const TextStyle(color: Colors.red)),
-          );
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        final rdvList = snapshot.data ?? [];
-        if (rdvList.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.event_busy_rounded,
-                    size: 64,
-                    color: AppColors.navyDark.withValues(alpha: 0.3)),
-                const SizedBox(height: 16),
-                Text('Aucun rendez-vous',
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        color: AppColors.navyDark.withValues(alpha: 0.5))),
-              ],
-            ),
-          );
-        }
+    return Column(
+      children: [
+        AppBar(
+          title: Text('Toutes les réservations', style: GoogleFonts.playfairDisplay()),
+          backgroundColor: AppColors.tealDark,
+          foregroundColor: Colors.white,
+        ),
+        Expanded(
+          child: StreamBuilder<List<RendezVous>>(
+            stream: _service.getRendezVousStream(medecinId: _medecinId),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              final rdvList = snapshot.data ?? [];
+              if (rdvList.isEmpty) return _buildEmptyState();
 
-        // Sort by date descending
-        rdvList.sort((a, b) {
-          if (a.dateHeure == null) return 1;
-          if (b.dateHeure == null) return -1;
-          return b.dateHeure!.compareTo(a.dateHeure!);
-        });
+              rdvList.sort((a,b) => b.dateHeure?.compareTo(a.dateHeure ?? DateTime.now()) ?? 0);
 
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(8, 16, 8, 100),
-          itemCount: rdvList.length,
-          itemBuilder: (context, i) =>
-              _RendezVousCard(rdv: rdvList[i]),
-        );
-      },
+              return ListView.builder(
+                padding: const EdgeInsets.all(20),
+                itemCount: rdvList.length,
+                itemBuilder: (context, i) => _AppointmentCard(rdv: rdvList[i]),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -260,70 +326,118 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Déconnexion'),
+        title: Text('Déconnexion', style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
         content: const Text('Voulez-vous vraiment vous déconnecter ?'),
         actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Annuler')),
-          ElevatedButton(
-              onPressed: () => Navigator.pop(ctx, true),
-              child: const Text('Déconnexion')),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Annuler')),
+          ElevatedButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Déconnexion')),
         ],
       ),
     );
     if (confirm == true) {
       await _authService.logout();
-      if (mounted) {
-        Navigator.pushReplacementNamed(context, '/login');
-      }
+      if (mounted) Navigator.pushReplacementNamed(context, '/login');
     }
   }
 }
 
-// ── Helper Widgets ─────────────────────────────────────────────────
+class HeaderClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    Path path = Path();
+    path.lineTo(0, size.height - 60);
+    path.quadraticBezierTo(size.width / 2, size.height, size.width, size.height - 60);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
 
-class _StatCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-  final Color color;
-  final Color? textColor;
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+}
 
-  const _StatCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-    required this.color,
-    this.textColor,
-  });
+class _AppointmentCard extends StatelessWidget {
+  final RendezVous rdv;
+  const _AppointmentCard({required this.rdv});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          )
+        ],
+      ),
+      child: IntrinsicHeight(
         child: Row(
           children: [
+            // Left Accent Border
             Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
+              width: 6,
+              decoration: const BoxDecoration(
+                color: AppColors.tealDark,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(20),
+                  bottomLeft: Radius.circular(20),
+                ),
               ),
-              child: Icon(icon, color: color, size: 26),
             ),
-            const SizedBox(width: 18),
             Expanded(
-              child: Text(label,
-                  style: Theme.of(context).textTheme.bodyLarge),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time_rounded, color: AppColors.orangeAccent, size: 18),
+                        const SizedBox(width: 8),
+                        Text(
+                          rdv.dateHeure != null ? DateFormat('HH:mm').format(rdv.dateHeure!) : '--:--',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        ),
+                        const SizedBox(width: 12),
+                        _Tag(
+                          label: rdv.typeVisite == TypeVisite.cabinet ? 'Cabinet' : 'Télé',
+                          color: AppColors.beigeGray,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      rdv.nomPatient.isEmpty ? 'Patient Inconnu' : rdv.nomPatient,
+                      style: GoogleFonts.playfairDisplay(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textBlack,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-            Text(
-              value,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    color: textColor ?? color,
+            // Actions
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: Row(
+                children: [
+                  _IconButton(
+                    icon: Icons.edit_outlined,
+                    color: AppColors.orangeAccent.withOpacity(0.1),
+                    iconColor: AppColors.orangeAccent,
+                    onTap: () => Navigator.pushNamed(context, '/edit-reservation', arguments: rdv),
                   ),
+                  const SizedBox(width: 8),
+                  // Cancellation icon removed as requested
+                ],
+              ),
             ),
           ],
         ),
@@ -332,14 +446,37 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _ActionButton extends StatelessWidget {
-  final IconData icon;
+class _Tag extends StatelessWidget {
   final String label;
+  final Color color;
+  const _Tag({required this.label, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.tealMedium),
+      ),
+    );
+  }
+}
+
+class _IconButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final Color iconColor;
   final VoidCallback onTap;
 
-  const _ActionButton({
+  const _IconButton({
     required this.icon,
-    required this.label,
+    required this.color,
+    required this.iconColor,
     required this.onTap,
   });
 
@@ -347,152 +484,15 @@ class _ActionButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 24),
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
-          gradient: AppColors.gradient,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.navyDark.withValues(alpha: 0.2),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          color: color,
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          children: [
-            Icon(icon, color: AppColors.white, size: 32),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RendezVousCard extends StatelessWidget {
-  final RendezVous rdv;
-  const _RendezVousCard({required this.rdv});
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: () =>
-            Navigator.pushNamed(context, '/edit-reservation', arguments: rdv),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              // Date badge
-              Container(
-                width: 56,
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                decoration: BoxDecoration(
-                  color: AppColors.navyDark.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Column(
-                  children: [
-                    Text(
-                      rdv.dateHeure != null
-                          ? DateFormat('dd').format(rdv.dateHeure!)
-                          : '--',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                    ),
-                    Text(
-                      rdv.dateHeure != null
-                          ? DateFormat('MMM').format(rdv.dateHeure!)
-                          : '',
-                      style: Theme.of(context).textTheme.bodySmall,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 14),
-              // Details
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      rdv.dateHeure != null
-                          ? DateFormat('HH:mm').format(rdv.dateHeure!)
-                          : 'Heure non définie',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      _typeLabel(rdv.typeVisite),
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: AppColors.navyDark.withValues(alpha: 0.6),
-                          ),
-                    ),
-                  ],
-                ),
-              ),
-              // Status chip
-              _StatusChip(statut: rdv.statut),
-              const SizedBox(width: 4),
-              const Icon(Icons.chevron_right_rounded,
-                  color: AppColors.navyDark),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _typeLabel(TypeVisite type) {
-    switch (type) {
-      case TypeVisite.cabinet:
-        return '🏥 Cabinet';
-      case TypeVisite.teleconsultation:
-        return '💻 Téléconsultation';
-      case TypeVisite.domicile:
-        return '🏠 Domicile';
-    }
-  }
-}
-
-class _StatusChip extends StatelessWidget {
-  final StatutRDV statut;
-  const _StatusChip({required this.statut});
-
-  @override
-  Widget build(BuildContext context) {
-    final (label, color) = switch (statut) {
-      StatutRDV.confirme => ('Confirmé', Colors.green),
-      StatutRDV.annule => ('Annulé', Colors.red),
-      StatutRDV.termine => ('Terminé', Colors.grey),
-      StatutRDV.absent => ('Absent', Colors.deepOrange),
-    };
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: color.shade700,
-          fontSize: 11,
-          fontWeight: FontWeight.w600,
-        ),
+        child: Icon(icon, color: iconColor, size: 18),
       ),
     );
   }

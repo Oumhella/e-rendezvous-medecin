@@ -13,6 +13,8 @@ class RendezVous {
   final DateTime? dateReservation;
   final String medecinId;  // reference to /medecin/{id}
   final String patientId;  // reference to /patient/{id}
+  final String patientPrenom;
+  final String patientNom;
 
   RendezVous({
     required this.id,
@@ -25,7 +27,11 @@ class RendezVous {
     this.dateReservation,
     this.medecinId = '',
     this.patientId = '',
+    this.patientPrenom = '',
+    this.patientNom = '',
   });
+
+  String get nomPatient => '$patientPrenom $patientNom'.trim();
 
   factory RendezVous.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
@@ -54,6 +60,8 @@ class RendezVous {
       patientId: data['patient_id'] is DocumentReference
           ? (data['patient_id'] as DocumentReference).id
           : (data['patient_id']?.toString().trim() ?? ''),
+      patientPrenom: data['patientPrenom'] ?? '',
+      patientNom: data['patientNom'] ?? '',
     );
   }
 
@@ -71,6 +79,8 @@ class RendezVous {
           : FieldValue.serverTimestamp(),
       'medecin_id': FirebaseFirestore.instance.doc('medecin/$medecinId'),
       'patient_id': FirebaseFirestore.instance.doc('patient/$patientId'),
+      'patientPrenom': patientPrenom,
+      'patientNom': patientNom,
     };
   }
 
@@ -86,6 +96,8 @@ class RendezVous {
     DateTime? dateReservation,
     String? medecinId,
     String? patientId,
+    String? patientPrenom,
+    String? patientNom,
   }) {
     return RendezVous(
       id: id ?? this.id,
@@ -98,6 +110,8 @@ class RendezVous {
       dateReservation: dateReservation ?? this.dateReservation,
       medecinId: medecinId ?? this.medecinId,
       patientId: patientId ?? this.patientId,
+      patientPrenom: patientPrenom ?? this.patientPrenom,
+      patientNom: patientNom ?? this.patientNom,
     );
   }
 }

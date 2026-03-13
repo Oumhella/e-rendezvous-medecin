@@ -142,7 +142,7 @@ class _PlanningMedecinScreenState extends State<PlanningMedecinScreen> {
           borderRadius: BorderRadius.circular(12),
           border: isToday && !isSelected
               ? Border.all(
-                  color: AppColors.lightBlue.withValues(alpha: 0.6), width: 1.5)
+                  color: AppColors.lightBlue.withOpacity(0.6), width: 1.5)
               : null,
         ),
         child: Column(
@@ -238,7 +238,7 @@ class _PlanningMedecinScreenState extends State<PlanningMedecinScreen> {
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.navyDark.withValues(alpha: 0.08),
+                        color: AppColors.navyDark.withOpacity(0.08),
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
@@ -418,14 +418,14 @@ class _CreneauTile extends StatelessWidget {
                       horizontal: 14, vertical: 10),
                   decoration: BoxDecoration(
                     color: hasRdv
-                        ? _statutColor(rdv!.statut).withValues(alpha: 0.08)
+                        ? _statutColor(rdv!.statut).withOpacity(0.08)
                         : creneau.disponible
                             ? Colors.green.shade50
                             : Colors.grey.shade100,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: hasRdv
-                          ? _statutColor(rdv!.statut).withValues(alpha: 0.3)
+                          ? _statutColor(rdv!.statut).withOpacity(0.3)
                           : creneau.disponible
                               ? Colors.green.shade200
                               : Colors.grey.shade300,
@@ -572,7 +572,7 @@ class _StatutBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

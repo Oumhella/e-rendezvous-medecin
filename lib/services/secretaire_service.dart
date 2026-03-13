@@ -445,10 +445,27 @@ class SecretaireService {
     await batch.commit();
   }
 
-  /// Get doctor data
+  /// Fetches medecin document data.
   Future<Map<String, dynamic>?> getMedecinData(String id) async {
     final doc = await _db.collection('medecin').doc(id).get();
     return doc.data();
+  }
+
+  /// Fetches doctor data joined with user data (for name/prenom)
+  Future<Map<String, dynamic>?> getMedecinFullInfo(String medecinId) async {
+    final medDoc = await _db.collection('medecin').doc(medecinId).get();
+    if (!medDoc.exists) return null;
+    
+    final medData = medDoc.data()!;
+    final userId = medData['utilisateur_id'] as String?;
+    
+    if (userId != null) {
+      final userDoc = await _db.collection('utilisateur').doc(userId).get();
+      if (userDoc.exists) {
+        medData['utilisateur'] = userDoc.data();
+      }
+    }
+    return medData;
   }
 
   /// Deletes all slots for the given dates.

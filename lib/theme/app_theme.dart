@@ -1,31 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class AppColors {
-  // Palette principale - Bleu ciel et bleu marine (Actuelle)
-  static const Color navyDark  = Color(0xFF243B42);
-  static const Color lightBlue = Color(0xFFC5DEE6);
-  static const Color white     = Color(0xFFFFFFFF);
-  static const Color offWhite  = Color(0xFFFAFAFA);
-  static const Color black     = Color(0xFF0D0D0D);
+  // Palette principale - Teal & Orange
+  static const Color tealDark      = Color(0xFF1B4A4A); // Header, dark cards
+  static const Color tealMedium    = Color(0xFF2C6B6B); // Secondary dark
+  static const Color orangeAccent  = Color(0xFFF5A623); // Buttons, markers, "+"
+  static const Color cream         = Color(0xFFFFF8F0); // Backgrounds
+  static const Color white         = Color(0xFFFFFFFF); // Cards, pure backgrounds
+  
+  // Couleurs secondaires
+  static const Color beigePeach    = Color(0xFFF0E6D3); // Secondary cards
+  static const Color textBlack     = Color(0xFF1A1A1A); // Main text
+  static const Color textGray      = Color(0xFF6B6B6B); // Secondary text
+  static const Color beigeGray     = Color(0xFFE8DDD0); // Small cards/tags
+  static const Color inactiveGray  = Color(0xFF9B9B9B); // Inactive icons
+  
+  static const Color errorRed      = Color(0xFFD32F2F);
 
-  // Palette Teal & Orange (Pour doctor_details et autres pages spécifiques)
-  static const Color tealDark      = Color(0xFF1B4A4A);
-  static const Color tealMedium    = Color(0xFF2C6B6B);
-  static const Color orangeAccent  = Color(0xFFF5A623);
-  static const Color cream         = Color(0xFFFFF8F0);
-  static const Color beigePeach    = Color(0xFFF0E6D3);
-  static const Color textBlack     = Color(0xFF1A1A1A);
-  static const Color textGray      = Color(0xFF6B6B6B);
-  static const Color beigeGray     = Color(0xFFE8DDD0);
-  static const Color inactiveGray  = Color(0xFF9B9B9B);
+  // Legacy Aliases (to fix compilation in other screens)
+  static const Color navyDark     = tealDark;
+  static const Color lightBlue    = beigeGray;
+  static const Color offWhite     = cream;
+  static const Color black        = textBlack;
 
-  // Gradients
-  static const LinearGradient gradient = LinearGradient(
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-    colors: [navyDark, lightBlue],
-  );
-
+  static const LinearGradient gradient = tealGradient; // Legacy gradient alias
+  
   static const LinearGradient tealGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
@@ -36,45 +36,95 @@ class AppColors {
 class AppTheme {
   static ThemeData get theme => ThemeData(
     useMaterial3: true,
-    scaffoldBackgroundColor: AppColors.offWhite,
+    scaffoldBackgroundColor: AppColors.cream,
     colorScheme: ColorScheme.fromSeed(
-      seedColor: AppColors.navyDark,
-      primary: AppColors.navyDark,
-      secondary: AppColors.lightBlue,
+      seedColor: AppColors.tealDark,
+      primary: AppColors.tealDark,
+      secondary: AppColors.orangeAccent,
       surface: AppColors.white,
+      onSurface: AppColors.textBlack,
     ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: AppColors.navyDark,
+    
+    // Config AppBar
+    appBarTheme: AppBarTheme(
+      backgroundColor: AppColors.tealDark,
       foregroundColor: AppColors.white,
       elevation: 0,
+      centerTitle: true,
+      titleTextStyle: GoogleFonts.playfairDisplay(
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+        color: AppColors.white,
+      ),
     ),
+    
+    // Config Boutons
     elevatedButtonTheme: ElevatedButtonThemeData(
       style: ElevatedButton.styleFrom(
-        backgroundColor: AppColors.navyDark,
+        backgroundColor: AppColors.orangeAccent,
         foregroundColor: AppColors.white,
+        elevation: 2,
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(16)),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        textStyle: GoogleFonts.inter(
+          fontWeight: FontWeight.bold,
+          fontSize: 16,
         ),
       ),
     ),
+    
+    // Config Inputs
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: AppColors.white,
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
-        borderSide: BorderSide(color: AppColors.navyDark, width: 2),
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.all(Radius.circular(12)),
+        borderRadius: BorderRadius.circular(15),
         borderSide: BorderSide.none,
       ),
-    ),
-    textTheme: const TextTheme(
-      headlineLarge: TextStyle(
-        color: AppColors.navyDark,
-        fontWeight: FontWeight.bold,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: BorderSide(color: AppColors.beigeGray.withOpacity(0.5)),
       ),
-      bodyMedium: TextStyle(color: AppColors.black),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(15),
+        borderSide: const BorderSide(color: AppColors.orangeAccent, width: 2),
+      ),
+      labelStyle: const TextStyle(color: AppColors.textGray),
+      hintStyle: const TextStyle(color: AppColors.inactiveGray),
+    ),
+    
+    // Typographie
+    textTheme: TextTheme(
+      headlineLarge: GoogleFonts.playfairDisplay(
+        color: AppColors.textBlack,
+        fontWeight: FontWeight.w900,
+        fontSize: 32,
+      ),
+      headlineMedium: GoogleFonts.playfairDisplay(
+        color: AppColors.tealDark,
+        fontWeight: FontWeight.bold,
+        fontSize: 24,
+      ),
+      titleLarge: GoogleFonts.inter(
+        color: AppColors.textBlack,
+        fontWeight: FontWeight.bold,
+        fontSize: 20,
+      ),
+      bodyLarge: GoogleFonts.inter(color: AppColors.textBlack, fontSize: 16),
+      bodyMedium: GoogleFonts.inter(color: AppColors.textGray, fontSize: 14),
+      labelSmall: GoogleFonts.inter(color: AppColors.inactiveGray, fontSize: 12),
+    ),
+    
+    // Bottom Navigation Bar
+    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      selectedItemColor: AppColors.orangeAccent,
+      unselectedItemColor: AppColors.inactiveGray,
+      backgroundColor: AppColors.white,
+      type: BottomNavigationBarType.fixed,
+      elevation: 10,
     ),
   );
 }

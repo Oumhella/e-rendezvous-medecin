@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../../models/horaires_template.dart';
 import '../../../services/secretaire_service.dart';
 import '../../../theme/app_theme.dart';
@@ -27,7 +28,6 @@ class _EditTemplateScreenState extends State<EditTemplateScreen> {
       _nameCtrl.text = widget.template!.nom;
       _intervalles.addAll(widget.template!.intervalles);
     } else {
-      // Add a default interval
       _intervalles.add(TemplateInterval(heureDebut: '08:00', heureFin: '12:00'));
     }
   }
@@ -52,14 +52,12 @@ class _EditTemplateScreenState extends State<EditTemplateScreen> {
     final picked = await showTimePicker(
       context: context,
       initialTime: initialTime,
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(primary: AppColors.navyDark),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColors.tealDark, onPrimary: Colors.white),
+        ),
+        child: child!,
+      ),
     );
 
     if (picked != null) {
@@ -95,9 +93,7 @@ class _EditTemplateScreenState extends State<EditTemplateScreen> {
 
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -107,112 +103,127 @@ class _EditTemplateScreenState extends State<EditTemplateScreen> {
   Widget build(BuildContext context) {
     final isEdit = widget.template != null;
     return Scaffold(
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        title: Text(isEdit ? 'Modifier le modèle' : 'Nouveau modèle'),
+        title: Text(isEdit ? 'Modifier le modèle' : 'Nouveau modèle', style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.tealDark,
+        foregroundColor: Colors.white,
       ),
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(24),
           children: [
-            const Text('Informations générales', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
+            _buildSectionTitle('NOM DU MODÈLE'),
+            const SizedBox(height: 16),
             TextFormField(
               controller: _nameCtrl,
-              decoration: const InputDecoration(
-                labelText: 'Nom du modèle (ex: Matin, Journée complète)',
-                hintText: 'Entrez un nom',
+              decoration: InputDecoration(
+                hintText: 'Ex: Matin, Journée complète...',
+                fillColor: AppColors.white,
+                filled: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
+                prefixIcon: const Icon(Icons.style_rounded, color: AppColors.orangeAccent),
               ),
+              style: GoogleFonts.inter(fontWeight: FontWeight.w600),
               validator: (v) => v == null || v.isEmpty ? 'Champ requis' : null,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Intervalles horaires', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                _buildSectionTitle('INTERVALLES HORAIRES'),
                 TextButton.icon(
                   onPressed: _addInterval,
-                  icon: const Icon(Icons.add),
-                  label: const Text('Ajouter'),
+                  icon: const Icon(Icons.add_circle_outline_rounded),
+                  label: const Text('AJOUTER'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: AppColors.tealDark,
+                    textStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 1),
+                  ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             ...List.generate(_intervalles.length, (index) {
               final interval = _intervalles[index];
-              return Card(
-                margin: const EdgeInsets.only(bottom: 12),
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Column(
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => _selectTime(index, true),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade300),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.access_time, size: 18, color: AppColors.navyDark),
-                                    const SizedBox(width: 8),
-                                    Text('Début: ${interval.heureDebut}'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: InkWell(
-                              onTap: () => _selectTime(index, false),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: Colors.grey.shade300),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Row(
-                                  children: [
-                                    const Icon(Icons.access_time, size: 18, color: AppColors.navyDark),
-                                    const SizedBox(width: 8),
-                                    Text('Fin: ${interval.heureFin}'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => _removeInterval(index),
-                            icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
-                          ),
-                        ],
+              return Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(child: _buildTimeBox(interval.heureDebut, () => _selectTime(index, true))),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: Text('À', style: GoogleFonts.inter(color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ),
+                    Expanded(child: _buildTimeBox(interval.heureFin, () => _selectTime(index, false))),
+                    if (_intervalles.length > 1)
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: IconButton(
+                          onPressed: () => _removeInterval(index),
+                          icon: const Icon(Icons.remove_circle_rounded, color: Colors.grey),
+                        ),
                       ),
-                    ],
-                  ),
+                  ],
                 ),
               );
             }),
-            const SizedBox(height: 32),
+            const SizedBox(height: 48),
             SizedBox(
-              height: 50,
+              height: 60,
               child: ElevatedButton(
                 onPressed: _isSaving ? null : _save,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.navyDark,
+                  backgroundColor: AppColors.orangeAccent,
                   foregroundColor: Colors.white,
+                  elevation: 8,
+                  shadowColor: AppColors.orangeAccent.withOpacity(0.4),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                 ),
                 child: _isSaving
                     ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('ENREGISTRER LE MODÈLE', style: TextStyle(fontWeight: FontWeight.bold)),
+                    : Text('ENREGISTRER LE MODÈLE', style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 16, letterSpacing: 1)),
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Row(
+      children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: AppColors.orangeAccent, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 12),
+        Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: AppColors.tealDark, fontSize: 11, letterSpacing: 1)),
+      ],
+    );
+  }
+
+  Widget _buildTimeBox(String time, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: AppColors.cream,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          time, 
+          textAlign: TextAlign.center, 
+          style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: AppColors.tealDark, fontSize: 16),
         ),
       ),
     );
