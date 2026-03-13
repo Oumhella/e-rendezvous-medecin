@@ -60,7 +60,7 @@ class MyApp extends StatelessWidget {
         '/register-medecin': (_) => const RegisterMedecinScreen(),
         '/admin': (_) => const AdminDashboardScreen(),
         '/admin/doctors': (_) => const AdminDoctorsScreen(),
-        '/home': (_) => const AdminDashboardScreen(), // Route de compatibilité
+        '/home': (_) => const AppHomePage(),
         '/dashboard': (_) => const DashboardScreen(),
         '/add-reservation': (_) => const AddReservationScreen(),
         '/edit-reservation': (_) => const EditReservationScreen(),
