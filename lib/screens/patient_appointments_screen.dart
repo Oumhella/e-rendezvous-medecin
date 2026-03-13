@@ -56,49 +56,75 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.offWhite,
-      appBar: AppBar(
-        title: const Text(
-          'Mes Rendez-vous',
-          style: TextStyle(
-            color: AppColors.navyDark,
-            fontWeight: FontWeight.bold,
+      backgroundColor: AppColors.cream,
+      body: Column(
+        children: [
+          _buildHeader(),
+          Expanded(
+            child: StreamBuilder<List<RendezVous>>(
+              stream: _getAppointments(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator(color: AppColors.tealDark));
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Erreur: ${snapshot.error}', style: const TextStyle(color: Colors.red)));
+                }
+
+                final appointments = snapshot.data ?? [];
+
+                if (appointments.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  itemCount: appointments.length,
+                  itemBuilder: (context, index) {
+                    final rdv = appointments[index];
+                    return _buildAppointmentCard(rdv);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return ClipPath(
+      clipper: WaveClipper(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.only(bottom: 40),
+        decoration: const BoxDecoration(color: AppColors.tealDark),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              Align(
+                alignment: Alignment.topLeft,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              const Text(
+                'Mes Rendez-vous',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  fontFamily: 'Serif',
+                ),
+              ),
+              const SizedBox(height: 20),
+            ],
           ),
         ),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.navyDark),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
-      body: StreamBuilder<List<RendezVous>>(
-        stream: _getAppointments(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (snapshot.hasError) {
-            return Center(child: Text('Erreur: ${snapshot.error}'));
-          }
-
-          final appointments = snapshot.data ?? [];
-
-          if (appointments.isEmpty) {
-            return _buildEmptyState();
-          }
-
-          return ListView.builder(
-            padding: const EdgeInsets.all(20),
-            itemCount: appointments.length,
-            itemBuilder: (context, index) {
-              final rdv = appointments[index];
-              return _buildAppointmentCard(rdv);
-            },
-          );
-        },
       ),
     );
   }
@@ -109,42 +135,46 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(32),
             decoration: BoxDecoration(
-              color: AppColors.lightBlue.withOpacity(0.1),
+              color: Colors.white,
               shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 20),
+              ],
             ),
             child: const Icon(
               Icons.calendar_today_outlined,
               size: 64,
-              color: AppColors.lightBlue,
+              color: AppColors.orangeAccent,
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           const Text(
-            'Aucun rendez-vous',
+            'Pas encore de rendez-vous',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: AppColors.navyDark,
+              color: AppColors.tealDark,
             ),
           ),
           const SizedBox(height: 12),
           Text(
-            'Vous n\'avez pas encore pris de rendez-vous.',
+            'Prenez votre premier rendez-vous en quelques clics.',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 14,
               color: Colors.grey[600],
             ),
+            textAlign: TextAlign.center,
           ),
           const SizedBox(height: 32),
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.navyDark,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              backgroundColor: AppColors.tealDark,
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(30),
               ),
             ),
             child: const Text(
@@ -183,20 +213,20 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         }
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 16),
+          margin: const EdgeInsets.only(bottom: 20),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.04),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
               ),
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -204,7 +234,7 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                       decoration: BoxDecoration(
                         color: _getStatusColor(rdv.statut.name).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(20),
@@ -214,32 +244,32 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                         style: TextStyle(
                           color: _getStatusColor(rdv.statut.name),
                           fontWeight: FontWeight.bold,
-                          fontSize: 12,
+                          fontSize: 11,
                         ),
                       ),
                     ),
                     Text(
                       rdv.typeVisite.name.toUpperCase(),
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontWeight: FontWeight.w600,
-                        fontSize: 11,
-                        letterSpacing: 1.2,
+                      style: const TextStyle(
+                        color: AppColors.textGray,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 10,
+                        letterSpacing: 1.0,
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Container(
-                      width: 50,
-                      height: 50,
+                      width: 56,
+                      height: 56,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFC7E0EB),
-                        borderRadius: BorderRadius.circular(12),
+                        color: AppColors.cream,
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(Icons.person, color: AppColors.navyDark),
+                      child: const Icon(Icons.person_outline, color: AppColors.tealDark, size: 28),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -249,17 +279,17 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                           Text(
                             doctorName,
                             style: const TextStyle(
-                              fontSize: 16,
+                              fontSize: 17,
                               fontWeight: FontWeight.bold,
-                              color: AppColors.navyDark,
+                              color: AppColors.tealDark,
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            rdv.motif.isNotEmpty ? rdv.motif : 'Consultation',
-                            style: TextStyle(
+                            rdv.motif.isNotEmpty ? rdv.motif : 'Consultation standard',
+                            style: const TextStyle(
                               fontSize: 14,
-                              color: Colors.grey[600],
+                              color: AppColors.textGray,
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -269,57 +299,30 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 20),
+                const Divider(height: 1),
                 const SizedBox(height: 16),
-                const Divider(),
-                const SizedBox(height: 12),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     if (rdv.dateHeure != null) ...[
-                      Row(
-                        children: [
-                          const Icon(Icons.calendar_today, size: 16, color: AppColors.lightBlue),
-                          const SizedBox(width: 8),
-                          Text(
-                            DateFormat('dd MMM yyyy', 'fr_FR').format(rdv.dateHeure!),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.navyDark,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time, size: 16, color: AppColors.lightBlue),
-                          const SizedBox(width: 8),
-                          Text(
-                            DateFormat('HH:mm').format(rdv.dateHeure!),
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.navyDark,
-                            ),
-                          ),
-                        ],
-                      ),
+                      _buildInfoItem(Icons.calendar_today_outlined, DateFormat('dd MMM yyyy', 'fr_FR').format(rdv.dateHeure!)),
+                      _buildInfoItem(Icons.access_time_outlined, DateFormat('HH:mm').format(rdv.dateHeure!)),
                     ]
                   ],
                 ),
-                // Bouton "Ajouter un avis" pour les RDV terminés
                 if (rdv.statut.name.toLowerCase() == 'termine') ...[
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
                       onPressed: () async {
-                        // Récupère le nom du médecin
                         final doctorData = snapshot.data ?? {};
                         final prenom = doctorData['prenom'] ?? '';
                         final nom = doctorData['nom'] ?? '';
-                        final medecinNom =
-                            'Dr. $prenom $nom'.trim();
+                        final medecinNom = 'Dr. $prenom $nom'.trim();
 
-                        final result = await Navigator.push(
+                        await Navigator.push(
                           context,
                           MaterialPageRoute(
                             builder: (_) => AddAvisScreen(
@@ -330,22 +333,16 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
                           ),
                         );
                       },
-                      icon: const Icon(Icons.star_outline,
-                          color: Colors.white, size: 18),
+                      icon: const Icon(Icons.star_outline, color: Colors.black87, size: 18),
                       label: const Text(
                         'Ajouter un avis',
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold),
+                        style: TextStyle(color: Colors.black87, fontWeight: FontWeight.bold),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green.shade600,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        backgroundColor: AppColors.orangeAccent,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
                         elevation: 0,
-                        padding:
-                            const EdgeInsets.symmetric(vertical: 10),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                     ),
                   ),
@@ -358,18 +355,35 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
     );
   }
 
+  Widget _buildInfoItem(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.orangeAccent),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: const TextStyle(
+            fontWeight: FontWeight.w600,
+            color: AppColors.tealDark,
+            fontSize: 13,
+          ),
+        ),
+      ],
+    );
+  }
+
   Color _getStatusColor(String statut) {
     switch (statut.toLowerCase()) {
       case 'confirme':
-        return Colors.green;
+        return const Color(0xFF2E7D32); // Deep Green
       case 'enattente':
-        return Colors.orange;
+        return AppColors.orangeAccent;
       case 'annule':
-        return Colors.red;
+        return const Color(0xFFD32F2F); // Red
       case 'termine':
-        return Colors.blue;
+        return AppColors.tealDark;
       case 'absent':
-        return Colors.grey;
+        return AppColors.textGray;
       default:
         return Colors.black;
     }
@@ -391,4 +405,31 @@ class _PatientAppointmentsScreenState extends State<PatientAppointmentsScreen> {
         return statut;
     }
   }
+}
+
+class WaveClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    var path = Path();
+    path.lineTo(0, size.height - 40);
+    
+    var firstControlPoint = Offset(size.width / 4, size.height);
+    var firstEndPoint = Offset(size.width / 2.25, size.height - 30);
+    path.quadraticBezierTo(firstControlPoint.dx, firstControlPoint.dy,
+        firstEndPoint.dx, firstEndPoint.dy);
+
+    var secondControlPoint =
+        Offset(size.width - (size.width / 3.25), size.height - 65);
+    var secondEndPoint = Offset(size.width, size.height - 20);
+    path.quadraticBezierTo(secondControlPoint.dx, secondControlPoint.dy,
+        secondEndPoint.dx, secondEndPoint.dy);
+
+    path.lineTo(size.width, size.height);
+    path.lineTo(size.width, 0);
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
