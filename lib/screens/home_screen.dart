@@ -12,6 +12,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'doctor_details_screen.dart';
 import 'reservation_screen.dart';
 import 'patient_appointments_screen.dart';
+import 'patient_profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -515,7 +516,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     );
                                   }
                                 } else if (value == 'profil') {
-                                  // Naviguer vers profil
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (context) => const PatientProfileScreen()),
+                                  );
                                 } else if (value == 'rdv') {
                                   Navigator.push(
                                     context,
@@ -1769,10 +1773,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 label: 'Profil',
                 isActive: false,
                 onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => common.LoginPromptDialog(),
-                  );
+                  final user = FirebaseAuth.instance.currentUser;
+                  if (user == null) {
+                    showDialog(
+                      context: context,
+                      builder: (context) => common.LoginPromptDialog(),
+                    );
+                  } else {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PatientProfileScreen(),
+                      ),
+                    );
+                  }
                 },
               ),
             ],
