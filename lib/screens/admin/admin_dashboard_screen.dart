@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../services/doctor_service.dart';
 import '../../models/doctor.dart';
 import 'admin_doctors_screen.dart';
+import 'doctor_detail_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
@@ -298,7 +299,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           GestureDetector(
             onTap: () {
-              // Navigation vers détails du médecin
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => DoctorDetailScreen(doctor: doctor),
+                ),
+              );
             },
             child: const Text(
               'Examiner →',
