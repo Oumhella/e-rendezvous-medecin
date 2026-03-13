@@ -14,6 +14,8 @@ class AdminDashboardScreen extends StatefulWidget {
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   List<Doctor> _pendingDoctors = [];
   List<Doctor> _allDoctors = [];
+  int _totalPatients = 0;
+  int _totalReclamations = 0;
   bool _isLoading = true;
 
   // Couleurs
@@ -35,13 +37,40 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Future<void> _loadData() async {
     try {
       final doctors = await DoctorService.getDoctors();
+      final patients = await _getTotalPatients();
+      final reclamations = await _getTotalReclamations();
+      
       setState(() {
         _allDoctors = doctors;
         _pendingDoctors = doctors.where((d) => d.statutMedecin == 'en_attente').toList();
+        _totalPatients = patients;
+        _totalReclamations = reclamations;
         _isLoading = false;
       });
     } catch (e) {
       setState(() => _isLoading = false);
+    }
+  }
+
+  Future<int> _getTotalPatients() async {
+    try {
+      final snapshot = await FirebaseFirestore.instance.collection('patient').get();
+      return snapshot.docs.length;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  Future<int> _getTotalReclamations() async {
+    try {
+      // Simuler des réclamations (à remplacer avec vraie collection si existante)
+      final snapshot = await FirebaseFirestore.instance
+          .collection('rendezVous')
+          .where('statut', isEqualTo: 'enAttente')
+          .get();
+      return snapshot.docs.length;
+    } catch (e) {
+      return 0;
     }
   }
 
@@ -105,21 +134,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 
   Widget _buildStatsGrid() {
+    final validDoctors = _allDoctors.where((d) => d.statutMedecin == 'valide').length;
+    final pendingDoctors = _allDoctors.where((d) => d.statutMedecin == 'en_attente').length;
+    
     return Column(
       children: [
         Row(
           children: [
-            Expanded(child: _buildStatCard(Icons.verified_user, '45', 'Médecins validés', false)),
+            Expanded(child: _buildStatCard(Icons.verified_user, '$validDoctors', 'Médecins validés', false)),
             const SizedBox(width: 15),
-            Expanded(child: _buildStatCard(Icons.access_time, '7', 'En attente', false)),
+            Expanded(child: _buildStatCard(Icons.access_time, '$pendingDoctors', 'En attente', false)),
           ],
         ),
         const SizedBox(height: 15),
         Row(
           children: [
-            Expanded(child: _buildStatCard(Icons.people, '1,240', 'Patients', true)),
+            Expanded(child: _buildStatCard(Icons.people, '$_totalPatients', 'Patients', true)),
             const SizedBox(width: 15),
-            Expanded(child: _buildStatCard(Icons.warning, '12', 'Réclamations', false, isGreen: true)),
+            Expanded(child: _buildStatCard(Icons.warning, '$_totalReclamations', 'Réclamations', false, isGreen: true)),
           ],
         ),
       ],
@@ -295,11 +327,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
         ),
         const SizedBox(height: 15),
-        // Mock complaints cards
-        _buildComplaintCard('Patient A', 'Problème de rendez-vous', 'Il y a 2 jours'),
-        _buildComplaintCard('Patient B', 'Facturation incorrecte', 'Il y a 5 jours'),
+        // Afficher les rendez-vous en attente comme réclamations
+        ..._buildRecentComplaints(),
       ],
     );
+  }
+
+  List<Widget> _buildRecentComplaints() {
+    if (_totalReclamations == 0) {
+      return [
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: white,
+            borderRadius: BorderRadius.circular(18),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: const Center(
+            child: Text(
+              'Aucune réclamation récente',
+              style: TextStyle(
+                fontSize: 16,
+                color: textGrey,
+              ),
+            ),
+          ),
+        )
+      ];
+    }
+    
+    // Simuler 2-3 réclamations basées sur les rendez-vous en attente
+    return [
+      _buildComplaintCard('Patient A', 'Rendez-vous en attente de confirmation', 'Il y a 2 jours'),
+      if (_totalReclamations > 1)
+        _buildComplaintCard('Patient B', 'Modification de rendez-vous demandée', 'Il y a 5 jours'),
+    ];
   }
 
   Widget _buildComplaintCard(String patient, String issue, String time) {
