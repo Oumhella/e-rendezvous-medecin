@@ -1,9 +1,9 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/rendez_vous.dart';
 import '../models/creneau_horaire.dart';
 import '../models/utilisateur.dart';
 import '../models/secretaire.dart';
+import '../models/horaires_template.dart';
 
 /// Firestore CRUD operations for the secretary role.
 class SecretaireService {
@@ -99,6 +99,26 @@ class SecretaireService {
             .toList());
   }
 
+  /// Get slots for a specific date range (useful for weekly view).
+  Stream<List<CreneauHoraire>> getCreneauxForRangeStream(String medecinId, DateTime start, DateTime end) {
+    final medRef = _db.doc('medecin/$medecinId');
+    return _db
+        .collection('creneaux')
+        .where('medecin_id', isEqualTo: medRef)
+        // Note: We remove the date range filter from Firestore to avoid composite index requirements.
+        // We filter in memory instead.
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs
+            .map((doc) => CreneauHoraire.fromFirestore(doc))
+            .where((c) => 
+               c.dateJour != null && 
+               c.dateJour!.isAfter(start.subtract(const Duration(seconds: 1))) && 
+               c.dateJour!.isBefore(end))
+            .toList();
+        });
+  }
+
   /// Add a new time-slot.
   Future<DocumentReference> addCreneau(CreneauHoraire creneau) {
     return _db.collection('creneaux').add(creneau.toFirestore());
@@ -118,40 +138,56 @@ class SecretaireService {
   }
 
   /// Batch create time-slots for a specific day and duration.
+  /// Supports multiple intervals and optional clearing of the day first.
   Future<void> batchCreateCreneaux({
     required String medecinId,
     required DateTime dateJour,
-    required TimeOfDay heureDebut,
-    required TimeOfDay heureFin,
+    required List<TemplateInterval> intervalles,
     required int dureeMinutes,
+    bool clearFirst = false,
   }) async {
     final batch = _db.batch();
-    
-    // Convert to minutes since midnight for easy iteration
-    int currentMinutes = heureDebut.hour * 60 + heureDebut.minute;
-    final endMinutes = heureFin.hour * 60 + heureFin.minute;
+    final medRef = _db.doc('medecin/$medecinId');
+    final dateOnly = DateTime(dateJour.year, dateJour.month, dateJour.day);
 
-    while (currentMinutes + dureeMinutes <= endMinutes) {
-      final startH = (currentMinutes ~/ 60).toString().padLeft(2, '0');
-      final startM = (currentMinutes % 60).toString().padLeft(2, '0');
+    if (clearFirst) {
+      await _cleanupSlotsAndCancelRDVs(medecinId, [dateOnly], batch);
+    }
+
+    for (var interval in intervalles) {
+      final startParts = interval.heureDebut.split(':');
+      final endParts = interval.heureFin.split(':');
       
-      final nextMinutes = currentMinutes + dureeMinutes;
-      final endH = (nextMinutes ~/ 60).toString().padLeft(2, '0');
-      final endM = (nextMinutes % 60).toString().padLeft(2, '0');
+      if (startParts.length < 2 || endParts.length < 2) continue;
 
-      final creneauRef = _db.collection('creneaux').doc();
-      final newSlot = CreneauHoraire(
-        id: creneauRef.id,
-        heureDebut: '$startH:$startM',
-        heureFin: '$endH:$endM',
-        disponible: true,
-        dateJour: dateJour,
-        medecinId: medecinId,
-      );
+      int currentMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+      final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
 
-      batch.set(creneauRef, newSlot.toFirestore());
-      
-      currentMinutes = nextMinutes;
+      while (currentMinutes + dureeMinutes <= endMinutes) {
+        final startH = (currentMinutes ~/ 60).toString().padLeft(2, '0');
+        final startM = (currentMinutes % 60).toString().padLeft(2, '0');
+        
+        final nextMinutes = currentMinutes + dureeMinutes;
+        final endH = (nextMinutes ~/ 60).toString().padLeft(2, '0');
+        final endM = (nextMinutes % 60).toString().padLeft(2, '0');
+
+        // PAST DATE PROTECTION: Skip if date is today and slot has already started
+        final now = DateTime.now();
+        final slotStartTime = DateTime(dateOnly.year, dateOnly.month, dateOnly.day, int.parse(startH), int.parse(startM));
+        
+        if (slotStartTime.isAfter(now)) {
+          final creneauRef = _db.collection('creneaux').doc();
+          batch.set(creneauRef, {
+            'heureDebut': '$startH:$startM',
+            'heureFin': '$endH:$endM',
+            'disponible': true,
+            'dateJour': Timestamp.fromDate(dateOnly),
+            'medecin_id': medRef,
+          });
+        }
+        
+        currentMinutes = nextMinutes;
+      }
     }
 
     await batch.commit();
@@ -261,5 +297,217 @@ class SecretaireService {
         .get();
     if (query.docs.isEmpty) return null;
     return Secretaire.fromFirestore(query.docs.first);
+  }
+
+  // ── Horaires Templates ──────────────────────────────────────────
+
+  /// Real-time stream of schedule templates for a given doctor.
+  Stream<List<HorairesTemplate>> getTemplatesStream(String medecinId) {
+    return _db
+        .collection('templates')
+        .where('medecin_id', isEqualTo: _db.doc('medecin/$medecinId'))
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => HorairesTemplate.fromFirestore(doc))
+            .toList());
+  }
+
+  /// Add a new schedule template.
+  Future<DocumentReference> addTemplate(HorairesTemplate template) {
+    return _db.collection('templates').add(template.toFirestore());
+  }
+
+  /// Update an existing schedule template.
+  Future<void> updateTemplate(HorairesTemplate template) {
+    return _db
+        .collection('templates')
+        .doc(template.id)
+        .update(template.toFirestore());
+  }
+
+  /// Delete a schedule template.
+  Future<void> deleteTemplate(String id) {
+    return _db.collection('templates').doc(id).delete();
+  }
+
+  /// Apply a template to several dates. 
+  /// Fetches the doctor's duration automatically.
+  Future<void> applyTemplateToDays({
+    required String medecinId,
+    required List<DateTime> dates,
+    required String templateId,
+  }) async {
+    // 1. Fetch the doctor for duration
+    final medDoc = await _db.collection('medecin').doc(medecinId).get();
+    if (!medDoc.exists) throw 'Médecin introuvable';
+    final int duree = (medDoc.data()?['dureeConsultationMin'] ?? 30).toInt();
+
+    // 2. Fetch the template
+    final tempDoc = await _db.collection('templates').doc(templateId).get();
+    if (!tempDoc.exists) throw 'Modèle introuvable';
+    final template = HorairesTemplate.fromFirestore(tempDoc);
+
+    final batch = _db.batch();
+    final medRef = _db.doc('medecin/$medecinId');
+
+    // 0. Cleanup existing slots for these dates
+    await _cleanupSlotsAndCancelRDVs(medecinId, dates, batch);
+
+    for (var date in dates) {
+      final dateOnly = DateTime(date.year, date.month, date.day);
+      
+      for (var interval in template.intervalles) {
+        // Parse "HH:mm"
+        final startParts = interval.heureDebut.split(':');
+        final endParts = interval.heureFin.split(':');
+        
+        int currentMinutes = int.parse(startParts[0]) * 60 + int.parse(startParts[1]);
+        final endMinutes = int.parse(endParts[0]) * 60 + int.parse(endParts[1]);
+
+        while (currentMinutes + duree <= endMinutes) {
+          final startH = (currentMinutes ~/ 60).toString().padLeft(2, '0');
+          final startM = (currentMinutes % 60).toString().padLeft(2, '0');
+          
+          final nextMin = currentMinutes + duree;
+          final endH = (nextMin ~/ 60).toString().padLeft(2, '0');
+          final endM = (nextMin % 60).toString().padLeft(2, '0');
+
+          // PAST DATE PROTECTION: Skip if date is today and slot has already started
+          final now = DateTime.now();
+          final slotStartTime = DateTime(dateOnly.year, dateOnly.month, dateOnly.day, int.parse(startH), int.parse(startM));
+
+          if (slotStartTime.isAfter(now)) {
+            final ref = _db.collection('creneaux').doc();
+            batch.set(ref, {
+              'heureDebut': '$startH:$startM',
+              'heureFin': '$endH:$endM',
+              'disponible': true,
+              'dateJour': Timestamp.fromDate(dateOnly),
+              'medecin_id': medRef,
+            });
+          }
+
+          currentMinutes = nextMin;
+        }
+      }
+    }
+
+    await batch.commit();
+  }
+
+  /// Duplicates all availability slots from one week to another.
+  /// Clears the target week first to prevent duplicates.
+  Future<void> duplicateWeekAvailability({
+    required String medecinId,
+    required DateTime sourceWeekStart, // Monday of source
+    required DateTime targetWeekStart, // Monday of target
+  }) async {
+    final medRef = _db.doc('medecin/$medecinId');
+    final sourceEnd = sourceWeekStart.add(const Duration(days: 7));
+
+    // 0. Cleanup target week first
+    final List<DateTime> targetDates = [];
+    for (int i = 0; i < 7; i++) {
+      targetDates.add(targetWeekStart.add(Duration(days: i)));
+    }
+    
+    final batch = _db.batch();
+    await _cleanupSlotsAndCancelRDVs(medecinId, targetDates, batch);
+
+    // 1. Get all slots for that doctor in the source week
+    final snapshot = await _db
+        .collection('creneaux')
+        .where('medecin_id', isEqualTo: medRef)
+        .where('dateJour', isGreaterThanOrEqualTo: Timestamp.fromDate(sourceWeekStart))
+        .where('dateJour', isLessThan: Timestamp.fromDate(sourceEnd))
+        .get();
+
+    if (snapshot.docs.isEmpty) {
+      await batch.commit();
+      return;
+    }
+
+    final difference = targetWeekStart.difference(sourceWeekStart).inDays;
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final sourceDate = (data['dateJour'] as Timestamp).toDate();
+      final targetDate = sourceDate.add(Duration(days: difference));
+
+      final newRef = _db.collection('creneaux').doc();
+      batch.set(newRef, {
+        ...data,
+        'dateJour': Timestamp.fromDate(targetDate),
+        'disponible': true, // Always reset to available when duplicating
+      });
+    }
+
+    await batch.commit();
+  }
+
+  /// Get doctor data
+  Future<Map<String, dynamic>?> getMedecinData(String id) async {
+    final doc = await _db.collection('medecin').doc(id).get();
+    return doc.data();
+  }
+
+  /// Deletes all slots for the given dates.
+  /// If a slot is reserved, the associated appointment is marked as 'annule'.
+  Future<void> bulkDeleteCreneaux({
+    required String medecinId,
+    required List<DateTime> dates,
+  }) async {
+    final batch = _db.batch();
+    await _cleanupSlotsAndCancelRDVs(medecinId, dates, batch);
+    await batch.commit();
+  }
+
+  /// Internal helper to delete slots and cancel RDVs for multiple dates.
+  Future<void> _cleanupSlotsAndCancelRDVs(String medecinId, List<DateTime> dates, WriteBatch batch) async {
+    final medRef = _db.doc('medecin/$medecinId');
+    
+    // Fetch all slots for this doctor to filter in memory
+    // This avoids the failed-precondition (missing index) error on composite queries.
+    final snapshot = await _db.collection('creneaux')
+        .where('medecin_id', isEqualTo: medRef)
+        .get();
+
+    final dateKeys = dates.map((d) => DateTime(d.year, d.month, d.day)).toSet();
+
+    for (var doc in snapshot.docs) {
+      final data = doc.data();
+      final dateValue = (data['dateJour'] as Timestamp?)?.toDate();
+      if (dateValue == null) continue;
+      
+      final dateOnly = DateTime(dateValue.year, dateValue.month, dateValue.day);
+      if (!dateKeys.contains(dateOnly)) continue;
+
+      if (data['disponible'] == false) {
+        // Find and cancel associated RDV
+        final rdvTime = _parseDateTime(dateOnly, data['heureDebut']);
+        if (rdvTime != null) {
+          final query = await _db.collection('rendezvous')
+              .where('medecin_id', isEqualTo: medRef)
+              .where('dateHeure', isEqualTo: Timestamp.fromDate(rdvTime))
+              .get();
+          for (var rdvDoc in query.docs) {
+            batch.update(rdvDoc.reference, {
+              'statut': 'annule',
+              'notes': 'Annulé automatiquement suite à un changement de planning ou indisponibilité.',
+            });
+          }
+        }
+      }
+      batch.delete(doc.reference);
+    }
+  }
+
+  DateTime? _parseDateTime(DateTime date, String hStr) {
+    try {
+      final parts = hStr.split(':');
+      return DateTime(date.year, date.month, date.day, int.parse(parts[0]), int.parse(parts[1]));
+    } catch (_) {
+      return null;
+    }
   }
 }

@@ -178,7 +178,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 children: [
                   Expanded(
                     child: _ActionButton(
-                      icon: Icons.access_time_filled_rounded,
+                      icon: Icons.edit_calendar_rounded,
                       label: 'Gestion des\nCréneaux',
                       onTap: () => Navigator.pushNamed(
                         context,
@@ -188,7 +188,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ),
                   ),
                   const SizedBox(width: 14),
-                  const Expanded(child: SizedBox()), // Spacer
+                  Expanded(
+                    child: _ActionButton(
+                      icon: Icons.auto_awesome_motion_rounded,
+                      label: 'Planification\nHebdo',
+                      onTap: () => Navigator.pushNamed(
+                        context,
+                        '/weekly-planner',
+                        arguments: _medecinId,
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],

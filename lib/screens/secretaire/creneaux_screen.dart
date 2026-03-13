@@ -14,15 +14,21 @@ class CreneauxScreen extends StatefulWidget {
 class _CreneauxScreenState extends State<CreneauxScreen> {
   final _service = SecretaireService();
   String? _medecinId;
+  String? _initialDateKey; // Format: "EEEE d MMMM yyyy"
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (_medecinId == null) {
       final args = ModalRoute.of(context)?.settings.arguments;
-      if (args is String && args.isNotEmpty) {
+      if (args is String) {
         _medecinId = args;
-      } else {
+      } else if (args is Map<String, dynamic>) {
+        _medecinId = args['medecinId'];
+        _initialDateKey = args['initialDate'];
+      }
+      
+      if (_medecinId == null || _medecinId!.isEmpty) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           Navigator.pushReplacementNamed(context, '/login');
         });
@@ -73,7 +79,15 @@ class _CreneauxScreenState extends State<CreneauxScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Gestion des Créneaux'),
+        title: Text(_initialDateKey != null ? 'Créneaux du ${_initialDateKey!.split(' ').sublist(1).join(' ')}' : 'Gestion des Créneaux'),
+        actions: [
+          if (_initialDateKey != null)
+            IconButton(
+              icon: const Icon(Icons.filter_alt_off),
+              tooltip: 'Voir toutes les dates',
+              onPressed: () => setState(() => _initialDateKey = null),
+            ),
+        ],
       ),
       body: StreamBuilder<List<CreneauHoraire>>(
         stream: _service.getCreneauxStream(_medecinId!),
@@ -87,10 +101,12 @@ class _CreneauxScreenState extends State<CreneauxScreen> {
 
           final creneaux = snapshot.data ?? [];
           if (creneaux.isEmpty) {
-            return const Center(
+            return Center(
               child: Text(
-                'Aucun créneau configuré.',
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                _initialDateKey != null 
+                  ? 'Aucun créneau pour ce jour.' 
+                  : 'Aucun créneau configuré.',
+                style: const TextStyle(fontSize: 16, color: Colors.grey),
               ),
             );
           }
@@ -111,6 +127,10 @@ class _CreneauxScreenState extends State<CreneauxScreen> {
           for (var c in creneaux) {
             if (c.dateJour == null) continue;
             final dateKey = dateFormat.format(c.dateJour!);
+            
+            // If filtering by initialDate, skip other dates
+            if (_initialDateKey != null && dateKey != _initialDateKey) continue;
+
             if (!grouped.containsKey(dateKey)) {
               grouped[dateKey] = [];
             }
@@ -187,7 +207,7 @@ class _CreneauxScreenState extends State<CreneauxScreen> {
           : AppColors.lightBlue.withValues(alpha: 0.4);
 
     return InkWell(
-      onLongPress: () => _afficherOptionsCreneau(c),
+      onTap: () => _afficherOptionsCreneau(c),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(

@@ -12,6 +12,8 @@ import 'screens/secretaire/creneaux_screen.dart';
 import 'screens/secretaire/add_creneau_screen.dart';
 import 'screens/medecin/medecin_dashboard_screen.dart';
 import 'screens/medecin/detail_rdv_screen.dart';
+import 'screens/secretaire/weekly_planner_screen.dart';
+import 'screens/secretaire/templates/templates_list_screen.dart';
 import 'screens/auth/splash_screen.dart';
 import 'services/seed_data.dart';
 
@@ -48,6 +50,14 @@ class MyApp extends StatelessWidget {
         '/add-creneau': (_) => const AddCreneauScreen(),
         '/medecin-dashboard': (_) => const MedecinDashboardScreen(),
         '/medecin-detail-rdv': (_) => const DetailRdvScreen(),
+        '/weekly-planner': (context) {
+          final medecinId = ModalRoute.of(context)!.settings.arguments as String;
+          return WeeklyPlannerScreen(medecinId: medecinId);
+        },
+        '/templates': (context) {
+          final medecinId = ModalRoute.of(context)!.settings.arguments as String;
+          return TemplatesListScreen(medecinId: medecinId);
+        },
       },
     );
   }

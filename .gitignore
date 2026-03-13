@@ -6,7 +6,7 @@
 .pub-cache/
 flutter_*.png
 generated_plugin_registrant.*
-
+.flutter-plugins-dependencies
 # Build outputs
 build/
 ios/Flutter/Flutter.framework
