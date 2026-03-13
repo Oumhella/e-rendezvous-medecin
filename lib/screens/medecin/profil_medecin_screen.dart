@@ -349,7 +349,7 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
               Text(
                 _utilisateur!.email,
                 style: TextStyle(
-                  color: Colors.white.withValues(alpha: 0.7),
+                  color: Colors.white.withOpacity(0.7),
                   fontSize: 13,
                 ),
               ),
@@ -368,7 +368,7 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
                           color: Color(0xFFFFD700), size: 18);
                     } else {
                       return Icon(Icons.star_outline_rounded,
-                          color: Colors.white.withValues(alpha: 0.4),
+                          color: Colors.white.withOpacity(0.4),
                           size: 18);
                     }
                   }),
@@ -384,7 +384,7 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
                   Text(
                     ' / 5',
                     style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.5),
+                      color: Colors.white.withOpacity(0.5),
                       fontSize: 12,
                     ),
                   ),
@@ -814,7 +814,7 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
       validator: validator,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: AppColors.navyDark.withValues(alpha: 0.6)),
+        prefixIcon: Icon(icon, color: AppColors.navyDark.withOpacity(0.6)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -847,7 +847,7 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(Icons.lock_outline,
-            color: AppColors.navyDark.withValues(alpha: 0.6)),
+            color: AppColors.navyDark.withOpacity(0.6)),
         suffixIcon: IconButton(
           icon: Icon(obscure ? Icons.visibility : Icons.visibility_off),
           onPressed: onToggle,

@@ -298,7 +298,7 @@ class _AddAvisScreenState extends State<AddAvisScreen> {
               hintText: 'Partagez votre expérience avec ce médecin...',
               hintStyle: TextStyle(color: Colors.grey[400], fontSize: 13),
               filled: true,
-              fillColor: AppColors.offWhite,
+              fillColor: AppColors.cream,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,

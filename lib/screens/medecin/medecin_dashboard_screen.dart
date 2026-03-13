@@ -217,7 +217,7 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
               Text(
                 DateFormat.yMMMMEEEEd('fr_FR').format(today),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: AppColors.navyDark.withValues(alpha: 0.6),
+                  color: AppColors.navyDark.withOpacity(0.6),
                 ),
               ),
               const SizedBox(height: 28),
@@ -264,13 +264,13 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
                       Icon(
                         Icons.event_available_rounded,
                         size: 48,
-                        color: AppColors.navyDark.withValues(alpha: 0.3),
+                        color: AppColors.navyDark.withOpacity(0.3),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         "Aucun rendez-vous aujourd'hui",
                         style: TextStyle(
-                          color: AppColors.navyDark.withValues(alpha: 0.5),
+                          color: AppColors.navyDark.withOpacity(0.5),
                           fontSize: 15,
                         ),
                       ),
@@ -356,7 +356,7 @@ class _StatCard extends StatelessWidget {
               width: 48,
               height: 48,
               decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
+                color: color.withOpacity(0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: color, size: 26),
@@ -406,7 +406,7 @@ class _RdvCardWithPatient extends StatelessWidget {
                 width: 56,
                 padding: const EdgeInsets.symmetric(vertical: 10),
                 decoration: BoxDecoration(
-                  color: AppColors.navyDark.withValues(alpha: 0.08),
+                  color: AppColors.navyDark.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Column(
@@ -441,7 +441,7 @@ class _RdvCardWithPatient extends StatelessWidget {
                     Text(
                       _typeLabel(rdv.typeVisite),
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: AppColors.navyDark.withValues(alpha: 0.6),
+                        color: AppColors.navyDark.withOpacity(0.6),
                       ),
                     ),
                   ],
@@ -493,7 +493,7 @@ class _StatusChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
+        color: color.withOpacity(0.12),
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(

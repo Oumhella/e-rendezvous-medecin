@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../models/rendez_vous.dart';
 import '../../models/enums.dart';
 import '../../services/secretaire_service.dart';
 import '../../theme/app_theme.dart';
 
-/// Screen to view and edit an existing appointment.
 class EditReservationScreen extends StatefulWidget {
   const EditReservationScreen({super.key});
 
@@ -58,19 +58,14 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
       initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime.now().subtract(const Duration(days: 365)),
       lastDate: DateTime.now().add(const Duration(days: 365)),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: Theme.of(context).colorScheme.copyWith(
-                  primary: AppColors.navyDark,
-                ),
-          ),
-          child: child!,
-        );
-      },
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColors.tealDark, onPrimary: Colors.white),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null) {
-      // Preserve the original time
       setState(() {
         _selectedDate = DateTime(
           picked.year,
@@ -87,6 +82,12 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
     final picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_selectedDate ?? DateTime.now()),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(primary: AppColors.tealDark, onPrimary: Colors.white),
+        ),
+        child: child!,
+      ),
     );
     if (picked != null && _selectedDate != null) {
       setState(() {
@@ -104,7 +105,6 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => _saving = true);
-
     try {
       final updated = _rdv.copyWith(
         statut: _selectedStatut,
@@ -113,22 +113,12 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
         notes: _notesCtrl.text.trim(),
       );
       await _service.updateRendezVous(updated);
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Rendez-vous mis à jour ✓'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Succès ✓'), backgroundColor: Colors.green));
         Navigator.pop(context);
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
-      }
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erreur: $e')));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -139,30 +129,12 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
       _selectedStatut = newStatus;
       _saving = true;
     });
-
     try {
-      final updated = _rdv.copyWith(
-        statut: newStatus,
-        typeVisite: _selectedType,
-        dateHeure: _selectedDate,
-        notes: _notesCtrl.text.trim(),
-      );
+      final updated = _rdv.copyWith(statut: newStatus);
       await _service.updateRendezVous(updated);
-
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Rendez-vous : ${_statusLabel(newStatus)} ✓'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Statut mis à jour ✓'), backgroundColor: Colors.green));
         Navigator.pop(context);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erreur: $e')),
-        );
       }
     } finally {
       if (mounted) setState(() => _saving = false);
@@ -173,304 +145,242 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Supprimer le rendez-vous'),
-        content: const Text(
-            'Êtes-vous sûr de vouloir supprimer ce rendez-vous ? Cette action est irréversible.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text('Supprimer le RDV', style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
+        content: const Text('Cette action est irréversible. Confirmer ?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Annuler'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('ANNULER')),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Supprimer'),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('SUPPRIMER'),
           ),
         ],
       ),
     );
 
     if (confirm == true) {
-      try {
-        await _service.deleteRendezVous(_rdv.id);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Rendez-vous supprimé'),
-              backgroundColor: Colors.red,
-            ),
-          );
-          Navigator.pop(context);
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Erreur: $e')),
-          );
-        }
-      }
+      await _service.deleteRendezVous(_rdv.id);
+      if (mounted) Navigator.pop(context);
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_initialized) return const Scaffold(body: Center(child: CircularProgressIndicator()));
+
     return Scaffold(
+      backgroundColor: AppColors.cream,
       appBar: AppBar(
-        title: const Text('Modifier Rendez-vous'),
+        title: Text('Modifier Rendez-vous', style: GoogleFonts.playfairDisplay(fontWeight: FontWeight.bold)),
+        backgroundColor: AppColors.tealDark,
+        foregroundColor: Colors.white,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline_rounded),
-            tooltip: 'Supprimer',
-            onPressed: _delete,
-          ),
+          IconButton(icon: const Icon(Icons.delete_outline_rounded), onPressed: _delete),
         ],
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // ── Current Info Banner ──────────────────
+              // --- Info Header ---
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: AppColors.gradient,
-                  borderRadius: BorderRadius.circular(16),
+                  color: AppColors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: [
+                    BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))
+                  ],
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.info_outline_rounded,
-                            color: AppColors.white, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Informations actuelles',
-                          style:
-                              Theme.of(context).textTheme.titleMedium?.copyWith(
-                                    color: AppColors.white,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                        ),
-                      ],
+                    CircleAvatar(
+                      radius: 25,
+                      backgroundColor: AppColors.tealDark.withOpacity(0.1),
+                      child: const Icon(Icons.person_rounded, color: AppColors.tealDark),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Médecin ID: ${_rdv.medecinId}',
-                      style: const TextStyle(color: AppColors.white, fontSize: 13),
-                    ),
-                    Text(
-                      'Patient ID: ${_rdv.patientId}',
-                      style: const TextStyle(color: AppColors.white, fontSize: 13),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('RÉSUMÉ DU RDV', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w900, color: AppColors.textGray, letterSpacing: 1)),
+                          Text(
+                            _selectedDate != null ? DateFormat('EEEE d MMMM HH:mm', 'fr_FR').format(_selectedDate!) : '...',
+                            style: GoogleFonts.playfairDisplay(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.tealDark),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
 
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
 
-              // ── Status ──────────────────────────────
-              _SectionTitle(icon: Icons.flag_rounded, title: 'Statut'),
-              const SizedBox(height: 10),
-              DropdownButtonFormField<StatutRDV>(
-                initialValue: _selectedStatut,
-                decoration: const InputDecoration(
-                  prefixIcon: Icon(Icons.pending_actions_rounded),
+              _buildSectionTitle('STATUT DU RENDEZ-VOUS'),
+              const SizedBox(height: 16),
+              _buildStatusSelector(),
+
+              const SizedBox(height: 32),
+
+              _buildSectionTitle('DATE ET HEURE'),
+              const SizedBox(height: 16),
+              _buildDateRow(),
+
+              const SizedBox(height: 32),
+
+              _buildSectionTitle('TYPE DE CONSULTATION'),
+              const SizedBox(height: 16),
+              _buildTypeSelector(),
+
+              const SizedBox(height: 32),
+
+              _buildSectionTitle('NOTES COMPLÉMENTAIRES'),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _notesCtrl,
+                maxLines: 3,
+                decoration: InputDecoration(
+                  hintText: 'Ajouter une note...',
+                  fillColor: AppColors.white,
+                  filled: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(15), borderSide: BorderSide.none),
                 ),
-                items: StatutRDV.values.map((s) {
-                  return DropdownMenuItem(
-                    value: s,
-                    child: Row(
-                      children: [
-                        _statusDot(s),
-                        const SizedBox(width: 10),
-                        Text(_statusLabel(s)),
-                      ],
-                    ),
-                  );
-                }).toList(),
-                onChanged: (v) {
-                  if (v != null) setState(() => _selectedStatut = v);
-                },
+                style: GoogleFonts.inter(fontSize: 14),
               ),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 48),
 
-              // ── Date & Time ─────────────────────────
-              _SectionTitle(
-                  icon: Icons.calendar_today_rounded,
-                  title: 'Date & Heure'),
-              const SizedBox(height: 10),
-              Row(
-                children: [
-                  Expanded(
-                    child: InkWell(
-                      onTap: _pickDate,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Date',
-                          prefixIcon: Icon(Icons.date_range_rounded),
-                        ),
-                        child: Text(
-                          _selectedDate != null
-                              ? DateFormat('dd/MM/yyyy')
-                                  .format(_selectedDate!)
-                              : '--/--/----',
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: InkWell(
-                      onTap: _pickTime,
-                      borderRadius: BorderRadius.circular(12),
-                      child: InputDecorator(
-                        decoration: const InputDecoration(
-                          labelText: 'Heure',
-                          prefixIcon: Icon(Icons.access_time_rounded),
-                        ),
-                        child: Text(
-                          _selectedDate != null
-                              ? DateFormat('HH:mm').format(_selectedDate!)
-                              : '--:--',
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 24),
-
-              // ── Type de visite ──────────────────────
-              _SectionTitle(
-                  icon: Icons.category_rounded,
-                  title: 'Type de visite'),
-              const SizedBox(height: 10),
-              SegmentedButton<TypeVisite>(
-                segments: const [
-                  ButtonSegment(
-                    value: TypeVisite.cabinet,
-                    label: Text('Cabinet'),
-                    icon: Icon(Icons.local_hospital_rounded),
-                  ),
-                  ButtonSegment(
-                    value: TypeVisite.teleconsultation,
-                    label: Text('Télé'),
-                    icon: Icon(Icons.videocam_rounded),
-                  ),
-                  ButtonSegment(
-                    value: TypeVisite.domicile,
-                    label: Text('Domicile'),
-                    icon: Icon(Icons.home_rounded),
-                  ),
-                ],
-                selected: {_selectedType},
-                onSelectionChanged: (s) =>
-                    setState(() => _selectedType = s.first),
-                style: ButtonStyle(
-                  backgroundColor:
-                      WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return AppColors.navyDark;
-                    }
-                    return AppColors.white;
-                  }),
-                  foregroundColor:
-                      WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return AppColors.white;
-                    }
-                    return AppColors.navyDark;
-                  }),
-                ),
-              ),
-
-              const SizedBox(height: 24),
-
-              // ── Quick Actions ───────────────────────
-              _SectionTitle(icon: Icons.bolt_rounded, title: 'Actions Rapides'),
-              const SizedBox(height: 12),
               SizedBox(
-                height: 50,
-                child: ElevatedButton.icon(
-                  onPressed: _saving ? null : () => _quickUpdateStatus(StatutRDV.termine),
-                  icon: const Icon(Icons.done_all_rounded, size: 20),
-                  label: const Text('Marquer comme Terminé'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.navyDark,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _saving ? null : () => _quickUpdateStatus(StatutRDV.absent),
-                      icon: const Icon(Icons.person_off_rounded, size: 20),
-                      label: const Text('Absent'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.deepOrange,
-                        side: const BorderSide(color: Colors.deepOrange),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _saving ? null : () => _quickUpdateStatus(StatutRDV.annule),
-                      icon: const Icon(Icons.cancel_outlined, size: 20),
-                      label: const Text('Annuler'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red,
-                        side: const BorderSide(color: Colors.red),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 36),
-
-              // ── Actions ─────────────────────────────
-              SizedBox(
-                height: 52,
+                height: 60,
                 child: ElevatedButton(
                   onPressed: _saving ? null : _save,
-                  child: _saving
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: AppColors.white,
-                          ),
-                        )
-                      : const Text('Enregistrer les modifications'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.tealDark,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                    elevation: 4,
+                  ),
+                  child: _saving 
+                    ? const CircularProgressIndicator(color: Colors.white) 
+                    : Text('ENREGISTRER LES MODIFICATIONS', style: GoogleFonts.inter(fontWeight: FontWeight.bold, letterSpacing: 1)),
                 ),
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                height: 48,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Annuler'),
-                ),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 80), // Space for scrolling under FAB if needed
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Row(
+      children: [
+        Container(width: 4, height: 16, decoration: BoxDecoration(color: AppColors.orangeAccent, borderRadius: BorderRadius.circular(2))),
+        const SizedBox(width: 12),
+        Text(title, style: GoogleFonts.inter(fontWeight: FontWeight.w900, color: AppColors.tealDark, fontSize: 11, letterSpacing: 1)),
+      ],
+    );
+  }
+
+  Widget _buildStatusSelector() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(15)),
+      child: DropdownButtonFormField<StatutRDV>(
+        value: _selectedStatut,
+        decoration: const InputDecoration(border: InputBorder.none),
+        items: StatutRDV.values.map((s) => DropdownMenuItem(
+          value: s,
+          child: Row(
+            children: [
+              _statusDot(s),
+              const SizedBox(width: 12),
+              Text(_statusLabel(s), style: GoogleFonts.inter(fontWeight: FontWeight.w600)),
+            ],
+          ),
+        )).toList(),
+        onChanged: (v) => v != null ? setState(() => _selectedStatut = v) : null,
+      ),
+    );
+  }
+
+  Widget _buildDateRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: _ActionBox(
+            icon: Icons.calendar_today_rounded,
+            label: _selectedDate != null ? DateFormat('dd/MM/yyyy').format(_selectedDate!) : '...',
+            onTap: _pickDate,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: _ActionBox(
+            icon: Icons.access_time_rounded,
+            label: _selectedDate != null ? DateFormat('HH:mm').format(_selectedDate!) : '...',
+            onTap: _pickTime,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTypeSelector() {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(15)),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: TypeVisite.values.map((t) {
+          final isSelected = _selectedType == t;
+          return Expanded(
+            child: InkWell(
+              onTap: () => setState(() => _selectedType = t),
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.tealDark : Colors.transparent,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      switch (t) {
+                        TypeVisite.cabinet => Icons.local_hospital_rounded,
+                        TypeVisite.teleconsultation => Icons.videocam_rounded,
+                        TypeVisite.domicile => Icons.home_rounded,
+                      },
+                      color: isSelected ? Colors.white : AppColors.textGray,
+                      size: 20,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      switch (t) {
+                        TypeVisite.cabinet => 'CABINET',
+                        TypeVisite.teleconsultation => 'TÉLÉ',
+                        TypeVisite.domicile => 'DOMICILE',
+                      },
+                      style: GoogleFonts.inter(
+                        fontSize: 9, 
+                        fontWeight: FontWeight.bold, 
+                        color: isSelected ? Colors.white : AppColors.textGray,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -479,14 +389,10 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
     final color = switch (s) {
       StatutRDV.confirme => Colors.green,
       StatutRDV.annule => Colors.red,
-      StatutRDV.termine => Colors.grey,
-      StatutRDV.absent => Colors.deepOrange,
+      StatutRDV.termine => Colors.blue,
+      StatutRDV.absent => Colors.orange,
     };
-    return Container(
-      width: 10,
-      height: 10,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-    );
+    return Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle));
   }
 
   String _statusLabel(StatutRDV s) {
@@ -499,19 +405,28 @@ class _EditReservationScreenState extends State<EditReservationScreen> {
   }
 }
 
-class _SectionTitle extends StatelessWidget {
+class _ActionBox extends StatelessWidget {
   final IconData icon;
-  final String title;
-  const _SectionTitle({required this.icon, required this.title});
+  final String label;
+  final VoidCallback onTap;
+  const _ActionBox({required this.icon, required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: AppColors.navyDark),
-        const SizedBox(width: 8),
-        Text(title, style: Theme.of(context).textTheme.titleMedium),
-      ],
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(15),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        decoration: BoxDecoration(color: AppColors.white, borderRadius: BorderRadius.circular(15)),
+        child: Row(
+          children: [
+            Icon(icon, color: AppColors.orangeAccent, size: 20),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13))),
+          ],
+        ),
+      ),
     );
   }
 }
