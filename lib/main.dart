@@ -83,3 +83,31 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+  class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Si l'authentification est en cours
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+        
+        // Si l'utilisateur est connecté
+        if (snapshot.hasData) {
+          return const AppHomePage();
+        }
+        
+        // Si l'utilisateur n'est pas connecté, afficher l'onboarding
+        return const OnboardingScreen();
+      },
+    );
+  }
+}
