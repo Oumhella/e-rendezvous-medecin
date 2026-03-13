@@ -344,34 +344,6 @@ class _DetailRdvScreenState extends State<DetailRdvScreen> {
 
     // Selon le statut actuel, on affiche différents boutons
     switch (_rdv.statut) {
-      case StatutRDV.enAttente:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.check_circle_outline),
-              label: const Text('Confirmer le RDV'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-              ),
-              onPressed: () => _updateStatut(StatutRDV.confirme),
-            ),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              icon: const Icon(Icons.cancel_outlined),
-              label: const Text('Annuler le RDV'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: Colors.red,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                side: const BorderSide(color: Colors.red),
-              ),
-              onPressed: () => _showCancelDialog(),
-            ),
-          ],
-        );
-
       case StatutRDV.confirme:
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -491,7 +463,6 @@ class _StatusChipDetailed extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (statut) {
-      StatutRDV.enAttente => ('En attente', Colors.orange),
       StatutRDV.confirme => ('Confirmé', Colors.green),
       StatutRDV.annule => ('Annulé', Colors.red),
       StatutRDV.termine => ('Terminé', Colors.grey),

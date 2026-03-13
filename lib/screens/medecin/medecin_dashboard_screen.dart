@@ -7,6 +7,7 @@ import '../../models/enums.dart';
 
 import '../../theme/app_theme.dart';
 import 'historique_rdv_screen.dart';
+import 'profil_medecin_screen.dart';
 
 /// Médecin dashboard — summary cards + today's appointments.
 class MedecinDashboardScreen extends StatefulWidget {
@@ -45,7 +46,24 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
         _medecinId = args as String;
       }
       _initialized = true;
+      // Charger le nom depuis Firestore (plus fiable que l'argument)
+      _refreshMedecinNom();
     }
+  }
+
+  /// Recharge le nom du médecin depuis Firestore.
+  Future<void> _refreshMedecinNom() async {
+    try {
+      final medecin = await DoctorService.getMedecinById(_medecinId);
+      if (medecin != null && medecin.utilisateurId.isNotEmpty) {
+        final utilisateur = await DoctorService.getUtilisateurById(medecin.utilisateurId);
+        if (utilisateur != null && mounted) {
+          setState(() {
+            _medecinNom = utilisateur.nomComplet;
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   /// Récupère le nom complet du patient via son ID (avec cache).
@@ -73,9 +91,15 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
   Widget _buildBody() {
     if (_currentIndex == 0) return _buildDashboard();
     if (_currentIndex == 1) return _buildTodayList();
-    return HistoriqueRdvScreen(
+    if (_currentIndex == 2) {
+      return HistoriqueRdvScreen(
+        medecinId: _medecinId,
+        getPatientName: _getPatientName,
+      );
+    }
+    return ProfilMedecinScreen(
       medecinId: _medecinId,
-      getPatientName: _getPatientName,
+      onProfilUpdated: _refreshMedecinNom,
     );
   }
 
@@ -87,8 +111,10 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
           _currentIndex == 0
               ? 'Tableau de bord'
               : _currentIndex == 1
-              ? 'RDV du jour'
-              : 'Historique',
+                  ? 'RDV du jour'
+                  : _currentIndex == 2
+                      ? 'Historique'
+                      : 'Profil',
         ),
         automaticallyImplyLeading: false,
         actions: [
@@ -104,6 +130,7 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
         selectedItemColor: AppColors.navyDark,
+        type: BottomNavigationBarType.fixed, // Nécessaire avec 4+ items
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard_rounded),
@@ -116,6 +143,11 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.history_rounded),
             label: 'Historique',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profil',
           ),
         ],
       ),
@@ -149,7 +181,6 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
               r.dateHeure != null &&
               DateFormat('yyyy-MM-dd').format(r.dateHeure!) == todayStr,
         );
-        final enAttente = rdvList.where((r) => r.statut == StatutRDV.enAttente);
         final confirmes = rdvList.where((r) => r.statut == StatutRDV.confirme);
 
         return RefreshIndicator(
@@ -179,12 +210,6 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
                 label: "RDV aujourd'hui",
                 value: todayRdv.length.toString(),
                 color: AppColors.navyDark,
-              ),
-              _StatCard(
-                icon: Icons.hourglass_top_rounded,
-                label: 'En attente',
-                value: enAttente.length.toString(),
-                color: Colors.orange.shade700,
               ),
               _StatCard(
                 icon: Icons.check_circle_outline_rounded,
@@ -411,59 +436,79 @@ class _RdvCardWithPatient extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            // Time badge
-            Container(
-              width: 56,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              decoration: BoxDecoration(
-                color: AppColors.navyDark.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  Text(
-                    rdv.dateHeure != null
-                        ? DateFormat('HH:mm').format(rdv.dateHeure!)
-                        : '--:--',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {
+          Navigator.pushNamed(
+            context,
+            '/medecin-detail-rdv',
+            arguments: {'rdv': rdv},
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              // Time badge
+              Container(
+                width: 56,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: AppColors.navyDark.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      rdv.dateHeure != null
+                          ? DateFormat('HH:mm').format(rdv.dateHeure!)
+                          : '--:--',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Patient + type
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    FutureBuilder<String>(
+                      future: getPatientName(rdv.patientId),
+                      builder: (context, snap) {
+                        return Text(
+                          snap.data ?? '...',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      _typeLabel(rdv.typeVisite),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: AppColors.navyDark.withValues(alpha: 0.6),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Status chip + arrow
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  _StatusChip(statut: rdv.statut),
+                  const SizedBox(height: 6),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.black26,
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 14),
-            // Patient + type
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  FutureBuilder<String>(
-                    future: getPatientName(rdv.patientId),
-                    builder: (context, snap) {
-                      return Text(
-                        snap.data ?? '...',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _typeLabel(rdv.typeVisite),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: AppColors.navyDark.withValues(alpha: 0.6),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            // Status chip
-            _StatusChip(statut: rdv.statut),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -488,7 +533,6 @@ class _StatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final (label, color) = switch (statut) {
-      StatutRDV.enAttente => ('En attente', Colors.orange),
       StatutRDV.confirme => ('Confirmé', Colors.green),
       StatutRDV.annule => ('Annulé', Colors.red),
       StatutRDV.termine => ('Terminé', Colors.grey),

@@ -9,7 +9,6 @@ enum StatutMedecin {
 
 /// Status of an appointment (rendez-vous)
 enum StatutRDV {
-  enAttente,
   confirme,
   annule,
   termine,
@@ -41,13 +40,14 @@ enum TypeNotification {
 
 // ── Helpers ──────────────────────────────────────────────────────────
 
-/// Convert an enum value to a Firestore-friendly string (e.g. StatutRDV.enAttente → "enAttente")
+/// Convert an enum value to a Firestore-friendly string (e.g. StatutRDV.confirme → "confirme")
 String enumToString(Object enumValue) => enumValue.toString().split('.').last;
 
 /// Parse a Firestore string back to the matching enum value.
 T enumFromString<T>(List<T> values, String value) {
+  final cleanValue = value.trim().toLowerCase().replaceAll('é', 'e').replaceAll('è', 'e').replaceAll('à', 'a').replaceAll(' ', '');
   return values.firstWhere(
-    (e) => e.toString().split('.').last == value,
+    (e) => e.toString().split('.').last.toLowerCase() == cleanValue,
     orElse: () => values.first,
   );
 }

@@ -72,34 +72,64 @@ class Doctor {
         specialite = specialiteRef;
       }
     }
-
+    
+    // Vérifier les champs essentiels
+    final nom = json['nom']?.toString() ?? '';
+    final prenom = json['prenom']?.toString() ?? '';
+    
+    // Si pas de nom, créer un médecin par défaut
+    if (nom.isEmpty) {
+      return Doctor(
+        id: json['id'] ?? 'unknown',
+        nom: 'Médecin',
+        prenom: 'Inconnu',
+        specialite: specialite,
+        noteMoyenne: (json['noteMoyenne'] ?? 4.0).toDouble(),
+        adresseCabinet: json['adresseCabinet']?.toString() ?? json['adresse']?.toString() ?? 'Adresse non spécifiée',
+        telephone: json['telephone']?.toString() ?? '',
+        actif: json['actif'] ?? true,
+        consultationEnLigne: json['consultationEnLigne'] ?? false,
+        anneesExperience: (json['anneesExperience'] ?? 0).toInt(),
+        biographies: json['biographies']?.toString() ?? json['biographie']?.toString() ?? '',
+        certificatExercice: json['certificatExercice']?.toString() ?? '',
+        cin: json['cin']?.toString() ?? '',
+        cv: json['cv']?.toString() ?? '',
+        dateValidationCompte: json['dateValidationCompte'] is Timestamp 
+            ? json['dateValidationCompte'] as Timestamp
+            : Timestamp.now(),
+        diplome: json['diplome']?.toString() ?? '',
+        dureConsultationMin: (json['dureConsultationMin'] ?? json['dureeConsultationMin'] ?? 30).toInt(),
+        tarifConsultationFromDB: (json['tarifConsultation'] ?? json['tarifConsultationFromDB'] ?? 200).toDouble(),
+        latitude: (json['latitude'] ?? 33.5731).toDouble(), // Casablanca par défaut
+        longitude: (json['longitude'] ?? -7.5898).toDouble(),
+        disponibilites: List<String>.from(json['disponibilites'] ?? ['08:00', '09:00', '10:00']),
+      );
+    }
+    
     return Doctor(
       id: json['id'] ?? json['utilisateur_id'] ?? '',
-      nom: json['nom'] ?? 'Médecin',
-      prenom: json['prenom'] ?? '',
+      nom: nom,
+      prenom: prenom,
       specialite: specialite,
       noteMoyenne: (json['noteMoyenne'] ?? 4.0).toDouble(),
-      adresseCabinet:
-          json['adresseCabinet'] ?? json['adresse'] ?? 'Adresse non spécifiée',
-      telephone: json['telephone'] ?? '',
+      adresseCabinet: json['adresseCabinet']?.toString() ?? json['adresse']?.toString() ?? 'Adresse non spécifiée',
+      telephone: json['telephone']?.toString() ?? '',
       actif: json['actif'] ?? true,
       consultationEnLigne: json['consultationEnLigne'] ?? false,
-      anneesExperience: json['anneesExperience'] ?? 0,
-      biographies: json['biographies'] ?? json['biographie'] ?? '',
-      certificatExercice: json['certificatExercice'] ?? '',
-      cin: json['cin'] ?? '',
-      cv: json['cv'] ?? '',
-      dateValidationCompte: json['dateValidationCompte'] is Timestamp
+      anneesExperience: (json['anneesExperience'] ?? 0).toInt(),
+      biographies: json['biographies']?.toString() ?? json['biographie']?.toString() ?? '',
+      certificatExercice: json['certificatExercice']?.toString() ?? '',
+      cin: json['cin']?.toString() ?? '',
+      cv: json['cv']?.toString() ?? '',
+      dateValidationCompte: json['dateValidationCompte'] is Timestamp 
           ? json['dateValidationCompte'] as Timestamp
           : Timestamp.now(),
-      diplome: json['diplome'] ?? '',
-      dureConsultationMin:
-          json['dureConsultationMin'] ?? json['dureeConsultationMin'] ?? 30,
-      tarifConsultationFromDB: json['tarifConsultation'] ?? 0,
-      latitude: (json['latitude'] ?? 33.5731)
-          .toDouble(), // Casablanca par défaut
+      diplome: json['diplome']?.toString() ?? '',
+      dureConsultationMin: (json['dureConsultationMin'] ?? json['dureeConsultationMin'] ?? 30).toInt(),
+      tarifConsultationFromDB: (json['tarifConsultation'] ?? json['tarifConsultationFromDB'] ?? 200).toDouble(),
+      latitude: (json['latitude'] ?? 33.5731).toDouble(), // Casablanca par défaut
       longitude: (json['longitude'] ?? -7.5898).toDouble(),
-      disponibilites: List<String>.from(json['disponibilites'] ?? []),
+      disponibilites: List<String>.from(json['disponibilites'] ?? ['08:00', '09:00', '10:00']),
     );
   }
 
