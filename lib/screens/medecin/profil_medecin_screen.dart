@@ -64,8 +64,8 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
     _loadProfil();
   }
 
-  Future<void> _loadProfil() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadProfil({bool silent = false}) async {
+    if (!silent) setState(() => _isLoading = true);
     try {
       final medecin = await DoctorService.getMedecinById(widget.medecinId);
       if (medecin != null) {
@@ -147,6 +147,9 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
       // Rafraîchir le greeting du dashboard
       await widget.onProfilUpdated?.call();
 
+      // Recharger le profil pour mettre à jour l'entête (nom, initiales…)
+      await _loadProfil(silent: true);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -184,6 +187,10 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
             int.tryParse(_dureeConsultationController.text) ?? 30,
         'biographie': _biographieController.text.trim(),
       });
+
+      // Recharger le profil pour synchroniser _medecin avec Firestore
+      await _loadProfil(silent: true);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -345,6 +352,43 @@ class _ProfilMedecinScreenState extends State<ProfilMedecinScreen>
                   color: Colors.white.withValues(alpha: 0.7),
                   fontSize: 13,
                 ),
+              ),
+              const SizedBox(height: 8),
+              // ── Note / Rating ──────────────────────────────
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ...List.generate(5, (i) {
+                    final note = _medecin!.noteMoyenne;
+                    if (i < note.floor()) {
+                      return const Icon(Icons.star_rounded,
+                          color: Color(0xFFFFD700), size: 18);
+                    } else if (i < note && note - i >= 0.5) {
+                      return const Icon(Icons.star_half_rounded,
+                          color: Color(0xFFFFD700), size: 18);
+                    } else {
+                      return Icon(Icons.star_outline_rounded,
+                          color: Colors.white.withValues(alpha: 0.4),
+                          size: 18);
+                    }
+                  }),
+                  const SizedBox(width: 6),
+                  Text(
+                    _medecin!.noteMoyenne.toStringAsFixed(1),
+                    style: const TextStyle(
+                      color: Color(0xFFFFD700),
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    ' / 5',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
               TabBar(

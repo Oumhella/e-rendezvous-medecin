@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import '../models/creneau_horaire.dart';
 import '../models/doctor.dart';
 import '../models/medecin.dart';
 import '../models/rendez_vous.dart';
@@ -97,6 +98,16 @@ class DoctorService {
     Map<String, dynamic> data,
   ) async {
     await _db.collection('utilisateur').doc(utilisateurId).update(data);
+  }
+
+  /// Stream temps-réel de tous les créneaux d'un médecin (pour le Planning).
+  static Stream<List<CreneauHoraire>> getCreneauxStream(String medecinId) {
+    return _db
+        .collection('creneaux')
+        .where('medecin_id', isEqualTo: _db.doc('medecin/$medecinId'))
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((d) => CreneauHoraire.fromFirestore(d)).toList());
   }
 
   static Future<List<Doctor>> getDoctors({
