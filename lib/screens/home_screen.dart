@@ -13,9 +13,26 @@ import 'doctor_details_screen.dart';
 import 'reservation_screen.dart';
 import 'patient_appointments_screen.dart';
 
+// ── Palette (inchangée) ────────────────────────────────────────────────────
+class _C {
+  static const cream      = Color(0xFFF5F0E8);
+  static const teal       = Color(0xFF3A9E8F);
+  static const tealDark   = Color(0xFF2D7A6E);
+  static const orange     = Color(0xFFE8900A);
+  static const cardBeige  = Color(0xFFFAEDD8);
+  static const cardMint   = Color(0xFFDCEDE8);
+  static const greenDot   = Color(0xFF4CAF50);
+  static const greenText  = Color(0xFF3A8A5A);
+  static const textDark   = Color(0xFF1A1A1A);
+  static const textGrey   = Color(0xFF888888);
+  static const white      = Colors.white;
+  static const beigeBorder= Color(0xFFE0D0B8);
+  static const iconBeige  = Color(0xFFBB9A60);
+  static const chipBg     = Color(0xFFF0E8D5);
+}
+
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -23,104 +40,61 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
-  
+
   List<Doctor> _doctors = [];
   List<Doctor> _filteredDoctors = [];
   bool _isLoading = true;
-  bool _isListView = true;
-  String _selectedSpeciality = '';
+  String _selectedSpeciality = 'Tous';
   String _currentLocation = 'Casablanca, Maroc';
-  
   Map<String, String> _filters = {};
-  String _selectedHeaderTab = 'nos_medecins';
-  
-  late AnimationController _fadeController;
-  late AnimationController _slideController;
-  late AnimationController _heroController;
-  late Animation<double> _fadeAnimation;
-  late Animation<Offset> _slideAnimation;
-  late Animation<double> _heroAnimation;
+  String _selectedTab = 'medecins'; // medecins | carte | specialites
+
+  // animations
+  late AnimationController _heroCtrl;
+  late AnimationController _fadeCtrl;
+  late AnimationController _pulseCtrl;
+  late Animation<double> _heroAnim;
+  late Animation<double> _fadeAnim;
+  late Animation<double> _pulseAnim;
+
+  final List<Map<String, dynamic>> _specs = [
+    {'name': 'Tous',       'icon': Icons.grid_view,          'emoji': '🏥'},
+    {'name': 'Cardio',     'icon': Icons.favorite,           'emoji': '❤️'},
+    {'name': 'Dentiste',   'icon': Icons.medical_services,   'emoji': '🦷'},
+    {'name': 'Ophtalmo',   'icon': Icons.visibility,         'emoji': '👁️'},
+    {'name': 'Neuro',      'icon': Icons.psychology,         'emoji': '🧠'},
+    {'name': 'Orthopédie', 'icon': Icons.accessibility_new,  'emoji': '🦴'},
+    {'name': 'Pédiatre',   'icon': Icons.child_care,         'emoji': '👶'},
+    {'name': 'Général',    'icon': Icons.local_hospital,     'emoji': '🩺'},
+  ];
 
   @override
   void initState() {
     super.initState();
-    _initializeAnimations();
-    _initializeApp();
-    _searchController.addListener(_onSearchChanged);
-  }
-
-  Future<void> _initializeApp() async {
-    print('🏠 Initialisation HomeScreen...');
-    await _loadDoctors();
-  }
-
-  void _initializeAnimations() {
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 800),
-      vsync: this,
-    );
-    _slideController = AnimationController(
-      duration: const Duration(milliseconds: 600),
-      vsync: this,
-    );
-    _heroController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
-    
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
-    
-    _slideAnimation = Tween<Offset>(
-      begin: const Offset(0, 0.1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
-    
-    _heroAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _heroController,
-      curve: Curves.elasticOut,
-    ));
-    
-    _fadeController.forward();
-    _slideController.forward();
-    _heroController.forward();
+    _heroCtrl  = AnimationController(duration: const Duration(milliseconds: 1000), vsync: this);
+    _fadeCtrl  = AnimationController(duration: const Duration(milliseconds: 700),  vsync: this);
+    _pulseCtrl = AnimationController(duration: const Duration(milliseconds: 2000), vsync: this)..repeat(reverse: true);
+    _heroAnim  = CurvedAnimation(parent: _heroCtrl,  curve: Curves.easeOutBack);
+    _fadeAnim  = CurvedAnimation(parent: _fadeCtrl,  curve: Curves.easeIn);
+    _pulseAnim = Tween<double>(begin: 0.95, end: 1.05).animate(
+        CurvedAnimation(parent: _pulseCtrl, curve: Curves.easeInOut));
+    _heroCtrl.forward();
+    _fadeCtrl.forward();
+    _loadDoctors();
+    _searchController.addListener(_applyFilters);
   }
 
   Future<void> _loadDoctors() async {
     try {
-      print('🔄 Début chargement des médecins...');
       final doctors = await DoctorService.getDoctors();
-      print('✅ Médecins chargés: ${doctors.length}');
-      setState(() {
-        _doctors = doctors;
-        _filteredDoctors = doctors;
-        _isLoading = false;
-      });
-      print('✅ setState terminé, isLoading: $_isLoading');
+      setState(() { _doctors = doctors; _filteredDoctors = doctors; _isLoading = false; });
     } catch (e) {
-      print('❌ Erreur chargement médecins: $e');
       setState(() => _isLoading = false);
     }
   }
 
-  void _onSearchChanged() {
-    _applyFilters();
-  }
-
   Future<void> _applyFilters() async {
     setState(() => _isLoading = true);
-    
     try {
       final filtered = await DoctorService.getDoctors(
         query: _searchController.text,
@@ -129,1698 +103,1046 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         typeConsultation: _filters['typeConsultation'],
         secteur: _filters['secteur'],
         tarifConsultation: _filters['tarif'],
-        noteMin: _filters['noteMin'] != null 
-            ? double.tryParse(_filters['noteMin']!) 
-            : null,
+        noteMin: _filters['noteMin'] != null ? double.tryParse(_filters['noteMin']!) : null,
       );
-      
-      setState(() {
-        _filteredDoctors = filtered;
-        _isLoading = false;
-      });
+      setState(() { _filteredDoctors = filtered; _isLoading = false; });
     } catch (e) {
       setState(() => _isLoading = false);
     }
   }
 
-  void _showFilterBottomSheet() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => FilterBottomSheet(
-        currentFilters: _filters,
-        onFiltersChanged: (newFilters) {
-          setState(() {
-            _filters = newFilters;
-          });
-          _applyFilters();
-        },
-      ),
-    );
-  }
-
-  void _onDoctorTapped(Doctor doctor) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DoctorDetailsScreen(doctor: doctor),
-      ),
-    );
-  }
-
-  void _onAppointmentRequested(Doctor doctor) {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user == null) {
-      showDialog(
-        context: context,
-        builder: (context) => common.LoginPromptDialog(),
-      );
-    } else {
-      _onDoctorTapped(doctor);
-    }
-  }
-
-  void _onSpecialitySelected(String speciality) {
+  void _pickSpeciality(String name) {
     setState(() {
-      _selectedSpeciality = _selectedSpeciality == speciality ? '' : speciality;
-      if (_selectedSpeciality.isNotEmpty) {
-        _filters['specialite'] = _selectedSpeciality;
-      } else {
-        _filters.remove('specialite');
-      }
+      _selectedSpeciality = name;
+      if (name == 'Tous') _filters.remove('specialite');
+      else _filters['specialite'] = name;
     });
     _applyFilters();
+  }
+
+  void _onDoctorTapped(Doctor d) =>
+      Navigator.push(context, MaterialPageRoute(builder: (_) => DoctorDetailsScreen(doctor: d)));
+
+  void _onBook(Doctor d) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) showDialog(context: context, builder: (_) => common.LoginPromptDialog());
+    else _onDoctorTapped(d);
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
-    _fadeController.dispose();
-    _slideController.dispose();
-    _heroController.dispose();
+    _heroCtrl.dispose();
+    _fadeCtrl.dispose();
+    _pulseCtrl.dispose();
     super.dispose();
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.offWhite,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header Landing Page Premium
-            _buildLandingHeader(),
-            
-            // Contenu scrollable
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: _loadDoctors,
-                color: AppColors.navyDark,
-                child: _buildContent(),
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: _buildBottomNavigation(),
-    );
-  }
+      backgroundColor: _C.cream,
+      body: CustomScrollView(
+        controller: _scrollController,
+        slivers: [
+          // ── SLIVER APP BAR / HERO ──────────────────────────────────────
+          SliverToBoxAdapter(child: _buildHeroSection()),
 
-  Widget _buildLandingHeader() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Hero Section avec logo zoomé
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-            child: Row(
-              children: [
-                // Logo agrandi avec animation Hero
-                AnimatedBuilder(
-                  animation: _heroAnimation,
-                  builder: (context, child) {
-                    return Transform.scale(
-                      scale: 0.8 + (_heroAnimation.value * 0.4),
-                      child: Hero(
-                        tag: 'app_logo',
-                        child: Container(
-                          width: 70,
-                          height: 70,
-                          decoration: BoxDecoration(
-                            color: AppColors.navyDark,
-                            borderRadius: BorderRadius.circular(25),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.navyDark.withOpacity(0.3),
-                                blurRadius: 20,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Image.asset(
-                            'assets/images/logo.png',
-                            width: 45,
-                            height: 45,
-                            errorBuilder: (context, error, stackTrace) {
-                              return const Icon(
-                                Icons.local_hospital,
-                                size: 35,
-                                color: Colors.white,
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(width: 20),
-                // Titre et slogan avec animation
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      AnimatedBuilder(
-                        animation: _slideAnimation,
-                        builder: (context, child) {
-                          return SlideTransition(
-                            position: _slideAnimation,
-                            child: const Text(
-                              'E-Rendez-vous',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.navyDark,
-                                letterSpacing: -0.5,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 4),
-                      AnimatedBuilder(
-                        animation: _fadeAnimation,
-                        builder: (context, child) {
-                          return FadeTransition(
-                            opacity: _fadeAnimation,
-                            child: Text(
-                              'Votre santé, notre priorité',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey[600],
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-                // Boutons d'action modernes
-                StreamBuilder<User?>(
-                  stream: FirebaseAuth.instance.authStateChanges(),
-                  builder: (context, snapshot) {
-                    final user = snapshot.data;
-                    
-                    if (user == null) {
-                      return // Bouton connexion premium
-                        Container(
-                          decoration: BoxDecoration(
-                            color: AppColors.navyDark,
-                            borderRadius: BorderRadius.circular(20),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppColors.navyDark.withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
-                          ),
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/login');
-                            },
-                            icon: const Icon(
-                              Icons.login,
-                              size: 18,
-                              color: Colors.white,
-                            ),
-                            label: const Text(
-                              'Connexion',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 14,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.transparent,
-                              shadowColor: Colors.transparent,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                            ),
-                          ),
-                        );
-                    } else {
-                      return Row(
-                        children: [
-                          // Notifications avec badge
-                          Stack(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(15),
-                                  border: Border.all(
-                                    color: AppColors.navyDark.withOpacity(0.1),
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.08),
-                                      blurRadius: 10,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.notifications_outlined,
-                                  color: AppColors.navyDark,
-                                  size: 22,
-                                ),
-                              ),
-                              Positioned(
-                                right: 10,
-                                top: 10,
-                                child: Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.red,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(width: 8),
-                          // Profil Menu
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(15),
-                              border: Border.all(
-                                color: AppColors.navyDark.withOpacity(0.1),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.08),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: PopupMenuButton<String>(
-                              offset: const Offset(0, 50),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Padding(
-                                padding: EdgeInsets.all(12),
-                                child: Icon(
-                                  Icons.person_outline,
-                                  color: AppColors.navyDark,
-                                  size: 22,
-                                ),
-                              ),
-                              itemBuilder: (context) => [
-                                PopupMenuItem(
-                                  enabled: false,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        user.displayName ?? 'Utilisateur',
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.black87,
-                                        ),
-                                      ),
-                                      Text(
-                                        user.email ?? '',
-                                        style: const TextStyle(
-                                          color: Colors.grey,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                      const Divider(),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'profil',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.person, color: AppColors.navyDark, size: 20),
-                                      SizedBox(width: 12),
-                                      Text('Mon profil'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'rdv',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.calendar_today, color: AppColors.navyDark, size: 20),
-                                      SizedBox(width: 12),
-                                      Text('Mes rendez-vous'),
-                                    ],
-                                  ),
-                                ),
-                                const PopupMenuItem(
-                                  value: 'logout',
-                                  child: Row(
-                                    children: [
-                                      Icon(Icons.logout, color: Colors.red, size: 20),
-                                      SizedBox(width: 12),
-                                      Text('Déconnexion', style: TextStyle(color: Colors.red)),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              onSelected: (value) async {
-                                if (value == 'logout') {
-                                  await FirebaseAuth.instance.signOut();
-                                  if (mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Déconnexion réussie')),
-                                    );
-                                  }
-                                } else if (value == 'profil') {
-                                  // Naviguer vers profil
-                                } else if (value == 'rdv') {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) => const PatientAppointmentsScreen()),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                        ],
-                      );
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-          
-          // Section de recherche hero
-          Container(
-            margin: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              children: [
-                // Barre de recherche moderne
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(
-                      color: AppColors.navyDark.withOpacity(0.1),
-                      width: 1.5,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.navyDark.withOpacity(0.1),
-                        blurRadius: 25,
-                        offset: const Offset(0, 10),
-                      ),
-                    ],
-                  ),
-                  child: TextField(
-                    controller: _searchController,
-                    onChanged: (value) => _onSearchChanged(),
-                    decoration: InputDecoration(
-                      hintText: 'Rechercher un médecin, spécialité...',
-                      hintStyle: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 16,
-                      ),
-                      prefixIcon: Container(
-                        padding: const EdgeInsets.all(16),
-                        child: const Icon(
-                          Icons.search,
-                          color: AppColors.navyDark,
-                          size: 26,
-                        ),
-                      ),
-                      suffixIcon: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            margin: const EdgeInsets.only(right: 12),
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: AppColors.navyDark,
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: GestureDetector(
-                              onTap: _showFilterBottomSheet,
-                              child: const Icon(
-                                Icons.tune,
-                                color: Colors.white,
-                                size: 20,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 20,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                
-                // Chips de localisation et filtres actifs
-                Row(
-                  children: [
-                    // Chip de localisation premium
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(25),
-                        border: Border.all(
-                          color: AppColors.lightBlue.withOpacity(0.4),
-                          width: 1,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.lightBlue.withOpacity(0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            size: 18,
-                            color: AppColors.navyDark,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            _currentLocation,
-                            style: const TextStyle(
-                              color: AppColors.navyDark,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    
-                    // Filtres actifs avec design moderne
-                    if (_filters.isNotEmpty) ...[
-                      Expanded(
-                        child: SizedBox(
-                          height: 36,
-                          child: ListView.builder(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _filters.length,
-                            itemBuilder: (context, index) {
-                              final filterKey = _filters.keys.elementAt(index);
-                              final filterValue = _filters[filterKey]!;
-                              
-                              return Container(
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 14,
-                                  vertical: 8,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.navyDark,
-                                  borderRadius: BorderRadius.circular(20),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.navyDark.withOpacity(0.3),
-                                      blurRadius: 12,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      filterValue,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    GestureDetector(
-                                      onTap: () {
-                                        setState(() {
-                                          _filters.remove(filterKey);
-                                          if (filterKey == 'specialite') {
-                                            _selectedSpeciality = '';
-                                          }
-                                        });
-                                        _applyFilters();
-                                      },
-                                      child: const Icon(
-                                        Icons.close,
-                                        size: 14,
-                                        color: Colors.white,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // Navigation Header Premium
-          Container(
-            margin: const EdgeInsets.only(top: 20),
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 15,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedHeaderTab = 'nos_medecins'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _selectedHeaderTab == 'nos_medecins' ? AppColors.navyDark : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.people,
-                              size: 20,
-                              color: _selectedHeaderTab == 'nos_medecins' ? Colors.white : Colors.grey[600],
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Nos Médecins',
-                              style: TextStyle(
-                                color: _selectedHeaderTab == 'nos_medecins' ? Colors.white : Colors.grey[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedHeaderTab = 'carte'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _selectedHeaderTab == 'carte' ? AppColors.navyDark : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.map,
-                              size: 20,
-                              color: _selectedHeaderTab == 'carte' ? Colors.white : Colors.grey[600],
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Carte',
-                              style: TextStyle(
-                                color: _selectedHeaderTab == 'carte' ? Colors.white : Colors.grey[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: () => setState(() => _selectedHeaderTab = 'specialites'),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        decoration: BoxDecoration(
-                          color: _selectedHeaderTab == 'specialites' ? AppColors.navyDark : Colors.transparent,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.category,
-                              size: 20,
-                              color: _selectedHeaderTab == 'specialites' ? Colors.white : Colors.grey[600],
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Spécialités',
-                              style: TextStyle(
-                                color: _selectedHeaderTab == 'specialites' ? Colors.white : Colors.grey[600],
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          
-          const SizedBox(height: 24),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildContent() {
-    if (_isLoading && _filteredDoctors.isEmpty) {
-      return _buildSkeletonLoader();
-    }
-
-    return SingleChildScrollView(
-      controller: _scrollController,
-      child: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Contenu selon la sélection du header
-              if (_selectedHeaderTab == 'nos_medecins') ...[
-                _buildDoctorsSection(),
-              ] else if (_selectedHeaderTab == 'carte') ...[
-                _buildMapSection(),
-              ] else if (_selectedHeaderTab == 'specialites') ...[
-                _buildSpecialitiesSection(),
-              ],
-              
-              const SizedBox(height: 24),
-              
-              // Section "Comment ça marche" (toujours visible)
-              _buildHowItWorks(),
-              
-              const SizedBox(height: 100), // Espace pour la bottom nav
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDoctorsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header de section
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.navyDark,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.people,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Nos Médecins',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.navyDark,
-                      ),
-                    ),
-                    Text(
-                      '${_filteredDoctors.length} professionnels disponibles',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // Toggle vue moderne
-              Container(
-                padding: const EdgeInsets.all(4),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: AppColors.navyDark.withOpacity(0.1),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    GestureDetector(
-                      onTap: () => setState(() => _isListView = true),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: _isListView ? AppColors.navyDark : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.list,
-                          size: 18,
-                          color: _isListView ? Colors.white : Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () => setState(() => _isListView = false),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                        decoration: BoxDecoration(
-                          color: !_isListView ? AppColors.navyDark : Colors.transparent,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          Icons.map,
-                          size: 18,
-                          color: !_isListView ? Colors.white : Colors.grey[600],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Contenu selon la vue
-        if (_isListView) _buildListView() else _buildCompactMap(),
-      ],
-    );
-  }
-
-  Widget _buildMapSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header de section
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.navyDark,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.map,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Carte des médecins',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.navyDark,
-                      ),
-                    ),
-                    Text(
-                      'OpenStreetMap • ${_filteredDoctors.length} médecins',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Carte pleine largeur
-        _buildMapView(),
-      ],
-    );
-  }
-
-  Widget _buildSpecialitiesSection() {
-    final specialities = [
-      {'name': 'Généraliste', 'icon': Icons.local_hospital, 'count': 45},
-      {'name': 'Cardiologue', 'icon': Icons.favorite, 'count': 12},
-      {'name': 'Dermatologue', 'icon': Icons.face, 'count': 18},
-      {'name': 'Pédiatre', 'icon': Icons.child_care, 'count': 22},
-      {'name': 'Gynécologue', 'icon': Icons.female, 'count': 15},
-      {'name': 'Ophtalmologue', 'icon': Icons.visibility, 'count': 8},
-      {'name': 'Psychiatre', 'icon': Icons.psychology, 'count': 10},
-      {'name': 'Kinésithérapeute', 'icon': Icons.fitness_center, 'count': 25},
-      {'name': 'Dentiste', 'icon': Icons.medical_services, 'count': 20},
-      {'name': 'ORL', 'icon': Icons.hearing, 'count': 6},
-      {'name': 'Rhumatologue', 'icon': Icons.healing, 'count': 9},
-      {'name': 'Endocrinologue', 'icon': Icons.science, 'count': 7},
-    ];
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header de section
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.navyDark,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.category,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Spécialités médicales',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.navyDark,
-                      ),
-                    ),
-                    Text(
-                      '${specialities.length} spécialités disponibles',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        
-        // Grille des spécialités
-        Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          child: GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 3,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.2,
-            ),
-            itemCount: specialities.length,
-            itemBuilder: (context, index) {
-              final speciality = specialities[index];
-              final isSelected = _selectedSpeciality == speciality['name'];
-              
-              return GestureDetector(
-                onTap: () => _onSpecialitySelected(speciality['name'] as String),
-                child: Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isSelected ? AppColors.navyDark : AppColors.lightBlue.withOpacity(0.4),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected 
-                          ? AppColors.navyDark
-                          : AppColors.lightBlue.withOpacity(0.6),
-                      width: isSelected ? 2 : 1,
-                    ),
-                    boxShadow: isSelected
-                        ? [
-                            BoxShadow(
-                              color: AppColors.navyDark.withOpacity(0.3),
-                              blurRadius: 12,
-                              offset: const Offset(0, 4),
-                            ),
-                          ]
-                        : [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        speciality['icon'] as IconData,
-                        size: 24,
-                        color: isSelected ? AppColors.lightBlue : AppColors.navyDark,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        speciality['name'] as String,
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: isSelected ? AppColors.lightBlue : AppColors.navyDark,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '${speciality['count']}',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected ? AppColors.lightBlue.withOpacity(0.8) : AppColors.navyDark.withOpacity(0.6),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildCompactMap() {
-    return Container(
-      height: 300,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: FlutterMap(
-          options: const MapOptions(
-            initialCenter: LatLng(33.5731, -7.5898),
-            initialZoom: 12.0,
-            minZoom: 3.0,
-            maxZoom: 18.0,
-          ),
-          children: [
-            TileLayer(
-              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-              userAgentPackageName: 'e_rendezvous_medecin',
-              maxZoom: 19,
-            ),
-            // Marqueurs simplifiés
-            MarkerLayer(
-              markers: _filteredDoctors.take(10).map((doctor) {
-                LatLng position;
-                if (doctor.adresseCabinet.toLowerCase().contains('casablanca')) {
-                  position = const LatLng(33.5731, -7.5898);
-                } else if (doctor.adresseCabinet.toLowerCase().contains('rabat')) {
-                  position = const LatLng(34.0209, -6.8416);
-                } else {
-                  position = const LatLng(33.9716, -6.8428);
-                }
-                
-                return Marker(
-                  point: position,
-                  width: 30,
-                  height: 30,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.navyDark,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.navyDark.withOpacity(0.3),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.local_hospital,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildListView() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Row(
-            children: [
-              Text(
-                '${_filteredDoctors.length} médecins trouvés',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.navyDark,
-                ),
-              ),
-              const Spacer(),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.navyDark.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.sort,
-                      size: 16,
-                      color: AppColors.navyDark,
-                    ),
-                    const SizedBox(width: 4),
-                    const Text(
-                      'Pertinence',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: AppColors.navyDark,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        const SizedBox(height: 16),
-        
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20),
-          child: Column(
-            children: _filteredDoctors.map((doctor) {
-              return DoctorCard(
-                doctor: doctor,
-                onTap: () => _onDoctorTapped(doctor),
-                onAppointment: () => _onAppointmentRequested(doctor),
-              );
-            }).toList(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMapView() {
-    print('🗺️ _buildMapView appelé - médecins: ${_filteredDoctors.length}');
-    
-    // Convertir les médecins en marqueurs pour OpenStreetMap
-    final markers = _filteredDoctors.map((doctor) {
-      // Position basée sur l'adresse du médecin
-      LatLng position;
-      if (doctor.adresseCabinet.toLowerCase().contains('casablanca')) {
-        position = const LatLng(33.5731, -7.5898); // Casablanca
-      } else if (doctor.adresseCabinet.toLowerCase().contains('rabat')) {
-        position = const LatLng(34.0209, -6.8416); // Rabat  
-      } else if (doctor.adresseCabinet.toLowerCase().contains('marrakech')) {
-        position = const LatLng(31.6295, -7.9811); // Marrakech
-      } else if (doctor.adresseCabinet.toLowerCase().contains('fès')) {
-        position = const LatLng(34.0181, -5.0078); // Fès
-      } else {
-        position = const LatLng(33.9716, -6.8428); // Position par défaut
-      }
-      
-      return Marker(
-        point: position,
-        width: 50,
-        height: 50,
-        child: GestureDetector(
-          onTap: () => _onDoctorTapped(doctor),
-          child: Container(
-            decoration: BoxDecoration(
-              color: AppColors.navyDark,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.navyDark.withOpacity(0.3),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Stack(
-              children: [
-                Center(
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.navyDark, width: 2),
-                    ),
-                    child: const Icon(
-                      Icons.local_hospital,
-                      size: 18,
-                      color: AppColors.navyDark,
-                    ),
-                  ),
-                ),
-                if (doctor.disponibleAujourdhui)
-                  Positioned(
-                    right: 8,
-                    top: 8,
-                    child: Container(
-                      width: 8,
-                      height: 8,
-                      decoration: const BoxDecoration(
-                        color: Colors.green,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      );
-    }).toList();
-    
-    return Container(
-      height: 450,
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.08),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-          BoxShadow(
-            color: AppColors.navyDark.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          // Header amélioré
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.navyDark,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: const Icon(
-                    Icons.map_outlined,
-                    size: 20,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Carte des médecins',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.navyDark,
-                        ),
-                      ),
-                      Text(
-                        'OpenStreetMap • Vue en temps réel',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.navyDark.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Text(
-                    '${_filteredDoctors.length}',
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.navyDark,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: AppColors.offWhite),
-          // OpenStreetMap améliorée
-          Expanded(
-            child: FlutterMap(
-              options: const MapOptions(
-                initialCenter: LatLng(33.5731, -7.5898), // Casablanca par défaut
-                initialZoom: 13.0,
-                minZoom: 3.0,
-                maxZoom: 18.0,
-                rotationThreshold: 0.5,
-                interactionOptions: InteractionOptions(
-                  flags: InteractiveFlag.all,
-                ),
-              ),
-              children: [
-                // OpenStreetMap tile layer
-                TileLayer(
-                  urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                  userAgentPackageName: 'e_rendezvous_medecin',
-                  maxZoom: 19,
-                ),
-                // Markers layer
-                MarkerLayer(markers: markers),
-                // Attribution
-                RichAttributionWidget(
-                  attributions: [
-                    TextSourceAttribution(
-                      'OpenStreetMap contributors',
-                      textStyle: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey[600],
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHowItWorks() {
-    final steps = [
-      {
-        'step': 'Étape 1',
-        'title': 'Cherchez',
-        'description': 'Par spécialité ou symptôme',
-        'icon': Icons.search,
-      },
-      {
-        'step': 'Étape 2',
-        'title': 'Choisissez',
-        'description': 'Un créneau disponible',
-        'icon': Icons.calendar_today,
-      },
-      {
-        'step': 'Étape 3',
-        'title': 'Recevez',
-        'description': 'Votre confirmation',
-        'icon': Icons.check_circle,
-      },
-    ];
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 15,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.navyDark,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.info,
-                  color: Colors.white,
-                  size: 20,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Comment ça marche',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.navyDark,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Container(
-            height: 160,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: steps.length,
-              itemBuilder: (context, index) {
-                final step = steps[index];
-                return Container(
-                  margin: const EdgeInsets.only(right: 16),
-                  width: 140,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.navyDark.withOpacity(0.1),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: AppColors.navyDark,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Icon(
-                          step['icon'] as IconData,
-                          size: 20,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        step['step'] as String,
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: AppColors.navyDark,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        step['title'] as String,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.navyDark,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        step['description'] as String,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                    ],
-                  ),
-                );
+          // ── STICKY SEARCH + TABS ───────────────────────────────────────
+          SliverPersistentHeader(
+            pinned: true,
+            delegate: _StickySearchDelegate(
+              searchController: _searchController,
+              filters: _filters,
+              selectedTab: _selectedTab,
+              onFilterTap: _showFilters,
+              onTabChanged: (t) => setState(() => _selectedTab = t),
+              onFilterRemoved: (k) {
+                setState(() { _filters.remove(k); if (k == 'specialite') _selectedSpeciality = 'Tous'; });
+                _applyFilters();
               },
             ),
           ),
+
+          // ── BODY ──────────────────────────────────────────────────────
+          SliverToBoxAdapter(
+            child: FadeTransition(
+              opacity: _fadeAnim,
+              child: _buildBody(),
+            ),
+          ),
         ],
       ),
+      bottomNavigationBar: _buildBottomNav(),
     );
   }
 
-  Widget _buildSkeletonLoader() {
-    return Padding(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: List.generate(3, (index) => Container(
-          margin: const EdgeInsets.only(bottom: 16),
-          height: 200,
-          decoration: BoxDecoration(
-            color: Colors.grey[200],
-            borderRadius: BorderRadius.circular(16),
-          ),
-        )),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavigation() {
+  // ─── HERO SECTION ─────────────────────────────────────────────────────────
+  Widget _buildHeroSection() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -4),
-          ),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [_C.tealDark, _C.teal, _C.teal.withOpacity(0.85)],
+        ),
+      ),
+      child: SafeArea(
+        bottom: false,
+        child: Stack(
+          children: [
+            // Decorative circles background
+            Positioned(top: -30, right: -40,
+              child: Container(width: 160, height: 160,
+                decoration: BoxDecoration(shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.06)))),
+            Positioned(top: 60, right: 20,
+              child: Container(width: 80, height: 80,
+                decoration: BoxDecoration(shape: BoxShape.circle,
+                  color: Colors.white.withOpacity(0.04)))),
+            Positioned(bottom: 10, left: -30,
+              child: Container(width: 120, height: 120,
+                decoration: BoxDecoration(shape: BoxShape.circle,
+                  color: _C.orange.withOpacity(0.12)))),
+
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 28),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top row: logo + auth
+                  Row(children: [
+                    // Logo pill
+                    ScaleTransition(
+                      scale: _heroAnim,
+                      child: Hero(
+                        tag: 'app_logo',
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(color: Colors.white.withOpacity(0.3)),
+                          ),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            Image.asset('assets/images/logo.png', width: 22, height: 22,
+                                errorBuilder: (_, __, ___) => const Icon(Icons.local_hospital, size: 20, color: Colors.white)),
+                            const SizedBox(width: 7),
+                            const Text('E-Rendez-vous',
+                                style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 14)),
+                          ]),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    // Auth buttons
+                    StreamBuilder<User?>(
+                      stream: FirebaseAuth.instance.authStateChanges(),
+                      builder: (_, snap) {
+                        if (snap.data == null) {
+                          return GestureDetector(
+                            onTap: () => Navigator.pushNamed(context, '/login'),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: _C.orange,
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: const Text('Connexion',
+                                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+                            ),
+                          );
+                        }
+                        return Row(children: [
+                          _heroIconBtn(Icons.notifications_outlined, badge: true),
+                          const SizedBox(width: 8),
+                          _heroProfileMenu(snap.data!),
+                        ]);
+                      },
+                    ),
+                  ]),
+                  const SizedBox(height: 28),
+
+                  // Headline
+                  ScaleTransition(
+                    scale: _heroAnim,
+                    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      RichText(
+                        text: const TextSpan(
+                          style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, color: Colors.white, height: 1.15),
+                          children: [
+                            TextSpan(text: 'Votre santé,\n'),
+                            TextSpan(text: 'entre '),
+                            TextSpan(text: 'de bonnes\nmains',
+                                style: TextStyle(color: _C.orange)),
+                            TextSpan(text: ' 🩺'),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text('Trouvez et réservez un médecin\nen quelques secondes.',
+                          style: TextStyle(color: Colors.white.withOpacity(0.75), fontSize: 13, height: 1.5)),
+                    ]),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Stats row
+                  FadeTransition(
+                    opacity: _fadeAnim,
+                    child: Row(children: [
+                      _statPill('${_doctors.length}+', 'Médecins'),
+                      const SizedBox(width: 10),
+                      _statPill('8', 'Spécialités'),
+                      const SizedBox(width: 10),
+                      _statPill('24/7', 'Disponible'),
+                    ]),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statPill(String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.2)),
+      ),
+      child: Column(children: [
+        Text(value, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 15)),
+        Text(label, style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 10)),
+      ]),
+    );
+  }
+
+  Widget _heroIconBtn(IconData icon, {bool badge = false}) {
+    return Stack(children: [
+      Container(
+        width: 38, height: 38,
+        decoration: BoxDecoration(
+          color: Colors.white.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withOpacity(0.25)),
+        ),
+        child: Icon(icon, color: Colors.white, size: 19),
+      ),
+      if (badge) Positioned(right: 7, top: 7,
+          child: Container(width: 7, height: 7, decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle))),
+    ]);
+  }
+
+  Widget _heroProfileMenu(User user) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withOpacity(0.25)),
+      ),
+      child: PopupMenuButton<String>(
+        offset: const Offset(0, 44),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        child: const Padding(padding: EdgeInsets.all(9), child: Icon(Icons.person_outline, color: Colors.white, size: 19)),
+        itemBuilder: (_) => [
+          PopupMenuItem(enabled: false, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text(user.displayName ?? 'Utilisateur', style: const TextStyle(fontWeight: FontWeight.bold)),
+            Text(user.email ?? '', style: const TextStyle(color: _C.textGrey, fontSize: 12)),
+            const Divider(),
+          ])),
+          const PopupMenuItem(value: 'rdv', child: Row(children: [Icon(Icons.calendar_today, size: 18), SizedBox(width: 10), Text('Mes rendez-vous')])),
+          const PopupMenuItem(value: 'logout', child: Row(children: [Icon(Icons.logout, color: Colors.red, size: 18), SizedBox(width: 10), Text('Déconnexion', style: TextStyle(color: Colors.red))])),
         ],
+        onSelected: (v) async {
+          if (v == 'logout') {
+            await FirebaseAuth.instance.signOut();
+            if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Déconnexion réussie')));
+          } else if (v == 'rdv') {
+            Navigator.push(context, MaterialPageRoute(builder: (_) => const PatientAppointmentsScreen()));
+          }
+        },
+      ),
+    );
+  }
+
+  // ─── BODY ─────────────────────────────────────────────────────────────────
+  Widget _buildBody() {
+    return Column(children: [
+      if (_selectedTab == 'medecins') ...[
+        _buildSpecialitiesRow(),
+        const SizedBox(height: 4),
+        _buildDoctorsSection(),
+      ] else if (_selectedTab == 'carte') ...[
+        _buildMapSection(),
+      ] else ...[
+        _buildSpecialitiesGrid(),
+      ],
+      const SizedBox(height: 20),
+      _buildHowItWorksStrip(),
+      const SizedBox(height: 16),
+      _buildAstuceSante(),
+      const SizedBox(height: 12),
+      _buildSignupBanner(),
+      const SizedBox(height: 100),
+    ]);
+  }
+
+  // ─── SPÉCIALITÉS ROW ──────────────────────────────────────────────────────
+  Widget _buildSpecialitiesRow() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+        child: Row(children: [
+          const Text('Spécialités', style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _C.textDark)),
+          const SizedBox(width: 6),
+          const Text('✨'),
+        ]),
+      ),
+      Container(margin: const EdgeInsets.only(left: 20, top: 3), height: 3, width: 44,
+          decoration: BoxDecoration(color: _C.orange, borderRadius: BorderRadius.circular(2))),
+      const SizedBox(height: 12),
+      SizedBox(
+        height: 85,
+        child: ListView.builder(
+          scrollDirection: Axis.horizontal,
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          itemCount: _specs.length,
+          itemBuilder: (_, i) {
+            final sp = _specs[i];
+            final sel = _selectedSpeciality == sp['name'];
+            return GestureDetector(
+              onTap: () => _pickSpeciality(sp['name']),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 64,
+                margin: const EdgeInsets.only(right: 10),
+                child: Column(children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 52, height: 52,
+                    decoration: BoxDecoration(
+                      color: sel ? _C.teal : _C.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: sel ? _C.teal : _C.beigeBorder, width: 1.5),
+                      boxShadow: sel ? [BoxShadow(color: _C.teal.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 3))] : [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4)],
+                    ),
+                    child: Center(
+                      child: Text(sp['emoji'], style: const TextStyle(fontSize: 20)),
+                    ),
+                  ),
+                  const SizedBox(height: 5),
+                  Text(sp['name'],
+                      style: TextStyle(fontSize: 9.5, fontWeight: FontWeight.w600,
+                          color: sel ? _C.teal : _C.textDark),
+                      textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                ]),
+              ),
+            );
+          },
+        ),
+      ),
+    ]);
+  }
+
+  // ─── DOCTORS SECTION ──────────────────────────────────────────────────────
+  Widget _buildDoctorsSection() {
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      // Section header with count badge
+      Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+        child: Row(children: [
+          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            const Text('Médecins recommandés',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _C.textDark)),
+            Container(margin: const EdgeInsets.only(top: 3), height: 3, width: 50,
+                decoration: BoxDecoration(color: _C.orange, borderRadius: BorderRadius.circular(2))),
+          ]),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            decoration: BoxDecoration(color: _C.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(20)),
+            child: Text('${_filteredDoctors.length} médecins',
+                style: const TextStyle(fontSize: 11, color: _C.teal, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+      ),
+      const SizedBox(height: 14),
+
+      if (_isLoading && _filteredDoctors.isEmpty)
+        _buildSkeletonGrid()
+      else if (_filteredDoctors.isEmpty)
+        Padding(
+          padding: const EdgeInsets.all(40),
+          child: Center(child: Column(children: [
+            const Text('🔍', style: TextStyle(fontSize: 40)),
+            const SizedBox(height: 10),
+            Text('Aucun médecin trouvé', style: TextStyle(color: _C.textGrey, fontWeight: FontWeight.w600)),
+          ])),
+        )
+      else
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: _buildTwoColGrid(),
+        ),
+    ]);
+  }
+
+  // ─── 2-COL GRID ──────────────────────────────────────────────────────────
+  Widget _buildTwoColGrid() {
+    final rows = <Widget>[];
+    for (int i = 0; i < _filteredDoctors.length; i += 2) {
+      final left  = _filteredDoctors[i];
+      final right = i + 1 < _filteredDoctors.length ? _filteredDoctors[i + 1] : null;
+      final leftMint = i % 4 == 0 || i % 4 == 3; // alternate color pattern
+
+      rows.add(Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Expanded(flex: 55, child: _doctorCard(left, bg: leftMint ? _C.cardMint : _C.cardBeige, tall: true)),
+          const SizedBox(width: 10),
+          Expanded(flex: 45, child: right != null
+              ? _doctorCard(right, bg: leftMint ? _C.cardBeige : _C.cardMint, tall: false)
+              : const SizedBox()),
+        ]),
+      ));
+    }
+    return Column(children: rows);
+  }
+
+  // ─── DOCTOR CARD ─────────────────────────────────────────────────────────
+  Widget _doctorCard(Doctor doctor, {required Color bg, required bool tall}) {
+    final parts    = doctor.nom.trim().split(' ');
+    final initials = parts.length >= 2 ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+        : doctor.nom.isNotEmpty ? doctor.nom[0].toUpperCase() : '?';
+    final rating   = doctor.note?.toStringAsFixed(1) ?? '4.5';
+    final dist     = '${(0.5 + (doctor.nom.length % 5) * 0.6).toStringAsFixed(1)} km';
+    final hour     = '${9 + (doctor.nom.length % 8)}h${doctor.nom.length % 2 == 0 ? "00" : "30"}';
+
+    return GestureDetector(
+      onTap: () => _onDoctorTapped(doctor),
+      child: Container(
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(18)),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          // Color zone
+          Stack(children: [
+            Container(
+              height: tall ? 110 : 90,
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: const BorderRadius.only(topLeft: Radius.circular(18), topRight: Radius.circular(18)),
+              ),
+            ),
+            // Green dot
+            if (doctor.disponibleAujourdhui)
+              Positioned(top: 10, left: 10,
+                child: Container(width: 9, height: 9,
+                    decoration: const BoxDecoration(color: _C.greenDot, shape: BoxShape.circle))),
+            // Rating
+            Positioned(top: 10, right: 10,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(color: Colors.white.withOpacity(0.9), borderRadius: BorderRadius.circular(8)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.star_rounded, size: 10, color: _C.orange),
+                  const SizedBox(width: 2),
+                  Text(rating, style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: _C.textDark)),
+                ]),
+              )),
+            // Avatar
+            Positioned.fill(child: Center(child: Container(
+              width: tall ? 56 : 48, height: tall ? 56 : 48,
+              decoration: BoxDecoration(
+                color: _C.white, shape: BoxShape.circle,
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 8, offset: const Offset(0, 2))],
+              ),
+              child: Center(child: Text(initials,
+                  style: TextStyle(fontSize: tall ? 17 : 14, fontWeight: FontWeight.w800, color: _C.teal))),
+            ))),
+          ]),
+          // Info
+          Padding(
+            padding: EdgeInsets.fromLTRB(tall ? 12 : 8, 10, tall ? 12 : 8, tall ? 12 : 9),
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text('Dr. ${doctor.nom}',
+                  style: TextStyle(fontSize: tall ? 13 : 11, fontWeight: FontWeight.w700, color: _C.textDark),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Text(doctor.specialite,
+                  style: TextStyle(fontSize: tall ? 11 : 10, color: _C.textGrey),
+                  maxLines: 1, overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 7),
+              Wrap(spacing: 5, runSpacing: 4, children: [
+                _infoChip(Icons.location_on_outlined, dist),
+                _infoChip(Icons.access_time_rounded, hour),
+              ]),
+              if (doctor.disponibleAujourdhui) ...[
+                const SizedBox(height: 6),
+                Row(children: [
+                  Icon(Icons.bolt_rounded, size: 11, color: _C.greenText),
+                  const SizedBox(width: 3),
+                  Text('Disponible maintenant',
+                      style: TextStyle(fontSize: 9.5, color: _C.greenText, fontWeight: FontWeight.w700)),
+                ]),
+              ],
+              const SizedBox(height: 9),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => _onBook(doctor),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _C.orange, foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: EdgeInsets.symmetric(vertical: tall ? 10 : 8),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+                    textStyle: TextStyle(fontSize: tall ? 12 : 11, fontWeight: FontWeight.w700),
+                  ),
+                  child: const Text('+ Réserver'),
+                ),
+              ),
+            ]),
+          ),
+        ]),
+      ),
+    );
+  }
+
+  Widget _infoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(color: _C.white.withOpacity(0.7), borderRadius: BorderRadius.circular(10)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, size: 9, color: _C.teal),
+        const SizedBox(width: 3),
+        Text(label, style: const TextStyle(fontSize: 9.5, color: _C.teal, fontWeight: FontWeight.w600)),
+      ]),
+    );
+  }
+
+  // ─── HOW IT WORKS — horizontal strip ──────────────────────────────────────
+  Widget _buildHowItWorksStrip() {
+    final steps = [
+      {'n': '01', 'title': 'Cherchez',   'desc': 'Médecin ou spécialité', 'icon': '🔍'},
+      {'n': '02', 'title': 'Choisissez', 'desc': 'Créneau disponible',    'icon': '📅'},
+      {'n': '03', 'title': 'Confirmez',  'desc': 'Votre rendez-vous',     'icon': '✅'},
+    ];
+
+    return Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Comment ça marche ?',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _C.textDark)),
+          Container(margin: const EdgeInsets.only(top: 3), height: 3, width: 50,
+              decoration: BoxDecoration(color: _C.orange, borderRadius: BorderRadius.circular(2))),
+        ]),
+      ),
+      const SizedBox(height: 12),
+      // Horizontal connected strip
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        child: Row(
+          children: List.generate(steps.length * 2 - 1, (i) {
+            if (i.isOdd) {
+              // Arrow connector
+              return Expanded(child: Container(
+                height: 2,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: [_C.teal.withOpacity(0.3), _C.orange.withOpacity(0.3)]),
+                  borderRadius: BorderRadius.circular(1),
+                ),
+              ));
+            }
+            final s = steps[i ~/ 2];
+            return Column(children: [
+              Container(
+                width: 52, height: 52,
+                decoration: BoxDecoration(
+                  color: _C.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _C.teal.withOpacity(0.2), width: 2),
+                  boxShadow: [BoxShadow(color: _C.teal.withOpacity(0.1), blurRadius: 10, offset: const Offset(0, 3))],
+                ),
+                child: Center(child: Text(s['icon']!, style: const TextStyle(fontSize: 22))),
+              ),
+              const SizedBox(height: 6),
+              Text(s['n']!, style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: _C.orange)),
+              Text(s['title']!, style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: _C.textDark)),
+              Text(s['desc']!, style: TextStyle(fontSize: 9, color: _C.textGrey), textAlign: TextAlign.center),
+            ]);
+          }),
+        ),
+      ),
+    ]);
+  }
+
+  // ─── ASTUCE SANTÉ ─────────────────────────────────────────────────────────
+  Widget _buildAstuceSante() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _C.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: _C.beigeBorder),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 10, offset: const Offset(0, 3))],
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 42, height: 42,
+          decoration: BoxDecoration(color: _C.orange.withOpacity(0.1), shape: BoxShape.circle),
+          child: const Center(child: Text('🌙', style: TextStyle(fontSize: 20))),
+        ),
+        const SizedBox(width: 12),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('Astuce santé',
+              style: TextStyle(fontSize: 14, fontWeight: FontWeight.w800, color: _C.textDark)),
+          const SizedBox(height: 3),
+          Text('Dormez au moins 7h par nuit pour renforcer votre immunité',
+              style: TextStyle(fontSize: 12, color: _C.textGrey, height: 1.4)),
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () {},
+            child: Row(children: [
+              Text('En savoir plus', style: TextStyle(fontSize: 12, color: _C.teal, fontWeight: FontWeight.w700)),
+              const SizedBox(width: 3),
+              Icon(Icons.arrow_forward_rounded, size: 13, color: _C.teal),
+            ]),
+          ),
+        ])),
+      ]),
+    );
+  }
+
+  // ─── SIGNUP BANNER ────────────────────────────────────────────────────────
+  Widget _buildSignupBanner() {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (_, snap) {
+        if (snap.data != null) return const SizedBox.shrink();
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 20),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [_C.tealDark, _C.teal],
+            ),
+            borderRadius: BorderRadius.circular(22),
+            boxShadow: [BoxShadow(color: _C.teal.withOpacity(0.35), blurRadius: 20, offset: const Offset(0, 8))],
+          ),
+          child: Stack(children: [
+            // Deco circle
+            Positioned(right: -20, top: -20,
+              child: Container(width: 100, height: 100,
+                decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withOpacity(0.06)))),
+            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const Text('Créez votre compte', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Colors.white)),
+              const SizedBox(height: 6),
+              Text("Accédez à la prise de rendez-vous,\nl'historique médical et plus encore.",
+                  style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.8), height: 1.5)),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () => Navigator.pushNamed(context, '/login'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 12),
+                  decoration: BoxDecoration(color: _C.orange, borderRadius: BorderRadius.circular(24),
+                      boxShadow: [BoxShadow(color: _C.orange.withOpacity(0.4), blurRadius: 12, offset: const Offset(0, 4))]),
+                  child: const Text("S'inscrire gratuitement →",
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 13)),
+                ),
+              ),
+            ]),
+          ]),
+        );
+      },
+    );
+  }
+
+  // ─── MAP SECTION ──────────────────────────────────────────────────────────
+  Widget _buildMapSection() {
+    final markers = _filteredDoctors.map((doctor) => Marker(
+      point: _pos(doctor), width: 44, height: 44,
+      child: GestureDetector(
+        onTap: () => _onDoctorTapped(doctor),
+        child: Stack(children: [
+          Container(
+            width: 44, height: 44,
+            decoration: BoxDecoration(
+              color: _C.teal, shape: BoxShape.circle,
+              border: Border.all(color: _C.orange, width: 2),
+              boxShadow: [BoxShadow(color: _C.teal.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))],
+            ),
+            child: Center(child: Container(
+              width: 28, height: 28,
+              decoration: BoxDecoration(color: _C.cream, shape: BoxShape.circle),
+              child: const Icon(Icons.local_hospital, size: 13, color: _C.teal),
+            )),
+          ),
+          if (doctor.disponibleAujourdhui) Positioned(right: 3, top: 3,
+            child: Container(width: 9, height: 9, decoration: const BoxDecoration(color: _C.greenDot, shape: BoxShape.circle))),
+        ]),
+      ),
+    )).toList();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('Carte des médecins',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _C.textDark)),
+          const Spacer(),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(color: _C.teal.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+            child: Text('${_filteredDoctors.length} médecins',
+                style: const TextStyle(fontSize: 11, color: _C.teal, fontWeight: FontWeight.w700)),
+          ),
+        ]),
+        Container(margin: const EdgeInsets.only(top: 3, bottom: 14), height: 3, width: 50,
+            decoration: BoxDecoration(color: _C.orange, borderRadius: BorderRadius.circular(2))),
+        Container(
+          height: 440,
+          decoration: BoxDecoration(
+            color: _C.white, borderRadius: BorderRadius.circular(22),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 14, offset: const Offset(0, 4))],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(22),
+            child: FlutterMap(
+              options: const MapOptions(
+                initialCenter: LatLng(33.5731, -7.5898),
+                initialZoom: 13.0, minZoom: 3.0, maxZoom: 18.0,
+                interactionOptions: InteractionOptions(flags: InteractiveFlag.all),
+              ),
+              children: [
+                TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                    userAgentPackageName: 'e_rendezvous_medecin', maxZoom: 19),
+                MarkerLayer(markers: markers),
+                RichAttributionWidget(attributions: [
+                  TextSourceAttribution('OpenStreetMap contributors',
+                      textStyle: TextStyle(fontSize: 10, color: _C.textGrey)),
+                ]),
+              ],
+            ),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  // ─── SPECIALITIES GRID ────────────────────────────────────────────────────
+  Widget _buildSpecialitiesGrid() {
+    final full = [
+      {'name': 'Cardio',    'emoji': '❤️',  'count': 12},
+      {'name': 'Dentiste',  'emoji': '🦷',  'count': 20},
+      {'name': 'Ophtalmo',  'emoji': '👁️',  'count': 8},
+      {'name': 'Neuro',     'emoji': '🧠',  'count': 10},
+      {'name': 'Général',   'emoji': '🩺',  'count': 45},
+      {'name': 'Pédiatre',  'emoji': '👶',  'count': 22},
+      {'name': 'Gynéco',    'emoji': '🌸',  'count': 15},
+      {'name': 'Dermato',   'emoji': '🧬',  'count': 18},
+      {'name': 'Kiné',      'emoji': '💪',  'count': 25},
+      {'name': 'ORL',       'emoji': '👂',  'count': 6},
+      {'name': 'Rhumato',   'emoji': '🦴',  'count': 9},
+      {'name': 'Endocrino', 'emoji': '⚗️',  'count': 7},
+    ];
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Row(children: [
+          const Text('Spécialités médicales',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: _C.textDark)),
+          const SizedBox(width: 6),
+          const Text('✨'),
+        ]),
+        Container(margin: const EdgeInsets.only(top: 3, bottom: 16), height: 3, width: 50,
+            decoration: BoxDecoration(color: _C.orange, borderRadius: BorderRadius.circular(2))),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 1.0,
+          ),
+          itemCount: full.length,
+          itemBuilder: (_, i) {
+            final sp = full[i];
+            final sel = _selectedSpeciality == sp['name'];
+            return GestureDetector(
+              onTap: () => _pickSpeciality(sp['name'] as String),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 160),
+                decoration: BoxDecoration(
+                  color: sel ? _C.teal : _C.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: sel ? _C.teal : _C.beigeBorder),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 2))],
+                ),
+                child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                  Text(sp['emoji'] as String, style: const TextStyle(fontSize: 26)),
+                  const SizedBox(height: 5),
+                  Text(sp['name'] as String,
+                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                          color: sel ? Colors.white : _C.textDark),
+                      textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+                  const SizedBox(height: 2),
+                  Text('${sp['count']} médecins',
+                      style: TextStyle(fontSize: 9, color: sel ? Colors.white.withOpacity(0.75) : _C.textGrey)),
+                ]),
+              ),
+            );
+          },
+        ),
+      ]),
+    );
+  }
+
+  Widget _buildSkeletonGrid() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Column(children: List.generate(3, (_) => Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: Row(children: [
+          Expanded(flex: 55, child: Container(height: 200,
+              decoration: BoxDecoration(color: _C.cardMint.withOpacity(0.5), borderRadius: BorderRadius.circular(18)))),
+          const SizedBox(width: 10),
+          Expanded(flex: 45, child: Container(height: 175,
+              decoration: BoxDecoration(color: _C.cardBeige.withOpacity(0.5), borderRadius: BorderRadius.circular(18)))),
+        ]),
+      ))),
+    );
+  }
+
+  LatLng _pos(Doctor d) {
+    final a = d.adresseCabinet.toLowerCase();
+    if (a.contains('casablanca')) return const LatLng(33.5731, -7.5898);
+    if (a.contains('rabat'))      return const LatLng(34.0209, -6.8416);
+    if (a.contains('marrakech'))  return const LatLng(31.6295, -7.9811);
+    if (a.contains('fès'))        return const LatLng(34.0181, -5.0078);
+    return const LatLng(33.9716, -6.8428);
+  }
+
+  // ─── FILTER SHEET ─────────────────────────────────────────────────────────
+  void _showFilters() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => FilterBottomSheet(
+        currentFilters: _filters,
+        onFiltersChanged: (f) { setState(() => _filters = f); _applyFilters(); },
+      ),
+    );
+  }
+
+  // ─── BOTTOM NAV ───────────────────────────────────────────────────────────
+  Widget _buildBottomNav() {
+    return Container(
+      decoration: BoxDecoration(
+        color: _C.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 16, offset: const Offset(0, -3))],
       ),
       child: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          child: Row(
-            children: [
-              _buildNavItem(
-                icon: Icons.home,
-                label: 'Accueil',
-                isActive: true,
-                onTap: () {},
-              ),
-              _buildNavItem(
-                icon: Icons.search,
-                label: 'Recherche',
-                isActive: false,
-                onTap: () {},
-              ),
-              _buildNavItem(
-                icon: Icons.calendar_today,
-                label: 'Mes RDV',
-                isActive: false,
-                onTap: () {
-                  final user = FirebaseAuth.instance.currentUser;
-                  if (user == null) {
-                    showDialog(
-                      context: context,
-                      builder: (context) => common.LoginPromptDialog(),
-                    );
-                  } else {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (context) => const PatientAppointmentsScreen()),
-                    );
-                  }
-                },
-              ),
-              _buildNavItem(
-                icon: Icons.person,
-                label: 'Profil',
-                isActive: false,
-                onTap: () {
-                  showDialog(
-                    context: context,
-                    builder: (context) => common.LoginPromptDialog(),
-                  );
-                },
-              ),
-            ],
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+          child: Row(children: [
+            _navItem(Icons.home_rounded,       'Accueil',   true,  () {}),
+            _navItem(Icons.search_rounded,     'Recherche', false, () {}),
+            _navItem(Icons.calendar_today,     'Mes RDV',   false, () {
+              final user = FirebaseAuth.instance.currentUser;
+              if (user == null) showDialog(context: context, builder: (_) => common.LoginPromptDialog());
+              else Navigator.push(context, MaterialPageRoute(builder: (_) => const PatientAppointmentsScreen()));
+            }),
+            _navItem(Icons.person_rounded,     'Profil',    false, () {
+              showDialog(context: context, builder: (_) => common.LoginPromptDialog());
+            }),
+          ]),
         ),
       ),
     );
   }
 
-  Widget _buildNavItem({
-    required IconData icon,
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
+  Widget _navItem(IconData icon, String label, bool active, VoidCallback onTap) {
     return Expanded(
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: isActive ? AppColors.navyDark : Colors.transparent,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(
-                  icon,
-                  size: 20,
-                  color: isActive ? Colors.white : Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
-                  color: isActive ? AppColors.navyDark : Colors.grey[600],
-                ),
-              ),
-            ],
+        child: Column(mainAxisSize: MainAxisSize.min, children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 160),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+            decoration: BoxDecoration(
+              color: active ? _C.teal : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, size: 22, color: active ? Colors.white : _C.textGrey),
           ),
+          const SizedBox(height: 3),
+          Text(label, style: TextStyle(fontSize: 9.5,
+              fontWeight: active ? FontWeight.w700 : FontWeight.w500,
+              color: active ? _C.teal : _C.textGrey)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── STICKY SEARCH DELEGATE ─────────────────────────────────────────────────
+class _StickySearchDelegate extends SliverPersistentHeaderDelegate {
+  final TextEditingController searchController;
+  final Map<String, String> filters;
+  final String selectedTab;
+  final VoidCallback onFilterTap;
+  final Function(String) onTabChanged;
+  final Function(String) onFilterRemoved;
+
+  const _StickySearchDelegate({
+    required this.searchController,
+    required this.filters,
+    required this.selectedTab,
+    required this.onFilterTap,
+    required this.onTabChanged,
+    required this.onFilterRemoved,
+  });
+
+  @override
+  double get minExtent => 110;
+  @override
+  double get maxExtent => filters.isNotEmpty ? 148 : 116;
+
+  @override
+  Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
+    final shrunk = shrinkOffset > 10;
+    return Container(
+      decoration: BoxDecoration(
+        color: _C.cream,
+        boxShadow: shrunk
+            ? [BoxShadow(color: Colors.black.withOpacity(0.07), blurRadius: 12, offset: const Offset(0, 3))]
+            : [],
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      child: Column(children: [
+        // Search row
+        Row(children: [
+          Expanded(
+            child: Container(
+              height: 46,
+              decoration: BoxDecoration(
+                color: _C.white,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 2))],
+              ),
+              child: TextField(
+                controller: searchController,
+                style: const TextStyle(fontSize: 13, color: _C.textDark),
+                decoration: InputDecoration(
+                  hintText: 'Médecin, spécialité...',
+                  hintStyle: TextStyle(color: _C.textGrey, fontSize: 13),
+                  prefixIcon: Icon(Icons.search_rounded, color: _C.teal, size: 19),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: onFilterTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 46, height: 46,
+              decoration: BoxDecoration(
+                color: filters.isNotEmpty ? _C.orange : _C.teal,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [BoxShadow(
+                    color: (filters.isNotEmpty ? _C.orange : _C.teal).withOpacity(0.35),
+                    blurRadius: 8, offset: const Offset(0, 3))],
+              ),
+              child: Stack(alignment: Alignment.center, children: [
+                const Icon(Icons.tune_rounded, color: Colors.white, size: 20),
+                if (filters.isNotEmpty)
+                  Positioned(top: 8, right: 8,
+                    child: Container(width: 8, height: 8,
+                        decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))),
+              ]),
+            ),
+          ),
+        ]),
+
+        // Active filter chips
+        if (filters.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          SizedBox(
+            height: 26,
+            child: ListView(
+              scrollDirection: Axis.horizontal,
+              children: filters.entries.map((e) => Container(
+                margin: const EdgeInsets.only(right: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(color: _C.orange, borderRadius: BorderRadius.circular(12)),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Text(e.value, style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600)),
+                  const SizedBox(width: 5),
+                  GestureDetector(
+                    onTap: () => onFilterRemoved(e.key),
+                    child: const Icon(Icons.close_rounded, size: 11, color: Colors.white),
+                  ),
+                ]),
+              )).toList(),
+            ),
+          ),
+        ],
+        const SizedBox(height: 8),
+
+        // Tabs
+        Container(
+          padding: const EdgeInsets.all(3),
+          decoration: BoxDecoration(
+            color: _C.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6)],
+          ),
+          child: Row(children: [
+            _tabBtn('medecins', Icons.people_rounded,  'Médecins',   selectedTab, onTabChanged),
+            _tabBtn('carte',    Icons.map_rounded,     'Carte',      selectedTab, onTabChanged),
+            _tabBtn('specialites', Icons.category_rounded, 'Spécialités', selectedTab, onTabChanged),
+          ]),
+        ),
+      ]),
+    );
+  }
+
+  Widget _tabBtn(String id, IconData icon, String label, String current, Function(String) onChange) {
+    final active = current == id;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () => onChange(id),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          padding: const EdgeInsets.symmetric(vertical: 9),
+          decoration: BoxDecoration(
+            color: active ? _C.teal : Colors.transparent,
+            borderRadius: BorderRadius.circular(11),
+          ),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+            Icon(icon, size: 14, color: active ? Colors.white : _C.textGrey),
+            const SizedBox(width: 4),
+            Text(label, style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700,
+                color: active ? Colors.white : _C.textGrey)),
+          ]),
         ),
       ),
     );
   }
+
+  @override
+  bool shouldRebuild(_StickySearchDelegate old) =>
+      old.filters != filters || old.selectedTab != selectedTab;
 }
