@@ -60,34 +60,6 @@ class _DetailRdvScreenState extends State<DetailRdvScreen> {
     }
   }
 
-  Future<void> _updateStatut(StatutRDV newStatut) async {
-    setState(() => _isLoading = true);
-    try {
-      await DoctorService.updateRendezVousStatut(_rdv.id, newStatut);
-      setState(() {
-        _rdv = _rdv.copyWith(statut: newStatut);
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Statut mis à jour avec succès'),
-            backgroundColor: Colors.green,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erreur lors de la mise à jour'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      setState(() => _isLoading = false);
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -335,98 +307,28 @@ class _DetailRdvScreenState extends State<DetailRdvScreen> {
     );
   }
 
-  // ── Actions Buttons ────────────────────────────────────────────────
+  // ── Bannière info lecture seule ────────────────────────────────────
 
   Widget _buildActionsButtons() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    // Selon le statut actuel, on affiche différents boutons
-    switch (_rdv.statut) {
-      case StatutRDV.confirme:
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.done_all_rounded),
-              label: const Text('Marquer comme Terminé'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.navyDark,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        color: Colors.blue.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.shade100),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.info_outline_rounded, color: Colors.blue.shade700, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'La gestion des rendez-vous est réservée à la secrétaire.',
+              style: TextStyle(
+                color: Colors.blue.shade800,
+                fontSize: 13,
               ),
-              onPressed: () => _updateStatut(StatutRDV.termine),
             ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.person_off_outlined),
-                    label: const Text('Absent'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.deepOrange,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Colors.deepOrange),
-                    ),
-                    onPressed: () => _updateStatut(StatutRDV.absent),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.cancel_outlined),
-                    label: const Text('Annuler'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
-                      side: const BorderSide(color: Colors.red),
-                    ),
-                    onPressed: () => _showCancelDialog(),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        );
-
-      case StatutRDV.termine:
-      case StatutRDV.annule:
-      case StatutRDV.absent:
-        // Statuts finaux, pas d'actions (ou option de révoquer l'annulation si voulu)
-        return Center(
-          child: Text(
-            'Ce rendez-vous est ${_rdv.statut.name}. Aucune action possible.',
-            style: const TextStyle(
-              color: Colors.grey,
-              fontStyle: FontStyle.italic,
-            ),
-          ),
-        );
-    }
-  }
-
-  void _showCancelDialog() {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Annuler le rendez-vous'),
-        content: const Text(
-          'Êtes-vous sûr de vouloir annuler ce rendez-vous ?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Non, retour'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _updateStatut(StatutRDV.annule);
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Oui, annuler'),
           ),
         ],
       ),

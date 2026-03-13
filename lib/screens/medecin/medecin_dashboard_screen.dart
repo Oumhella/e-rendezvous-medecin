@@ -7,6 +7,8 @@ import '../../models/enums.dart';
 
 import '../../theme/app_theme.dart';
 import 'historique_rdv_screen.dart';
+import 'patients_medecin_screen.dart';
+import 'planning_medecin_screen.dart';
 import 'profil_medecin_screen.dart';
 
 /// Médecin dashboard — summary cards + today's appointments.
@@ -90,12 +92,20 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
 
   Widget _buildBody() {
     if (_currentIndex == 0) return _buildDashboard();
-    if (_currentIndex == 1) return _buildTodayList();
+    if (_currentIndex == 1) {
+      return PlanningMedecinScreen(
+        medecinId: _medecinId,
+        getPatientName: _getPatientName,
+      );
+    }
     if (_currentIndex == 2) {
       return HistoriqueRdvScreen(
         medecinId: _medecinId,
         getPatientName: _getPatientName,
       );
+    }
+    if (_currentIndex == 3) {
+      return PatientsMedecinScreen(medecinId: _medecinId);
     }
     return ProfilMedecinScreen(
       medecinId: _medecinId,
@@ -111,10 +121,12 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
           _currentIndex == 0
               ? 'Tableau de bord'
               : _currentIndex == 1
-                  ? 'RDV du jour'
+                  ? 'Planning'
                   : _currentIndex == 2
                       ? 'Historique'
-                      : 'Profil',
+                      : _currentIndex == 3
+                          ? 'Mes Patients'
+                          : 'Profil',
         ),
         automaticallyImplyLeading: false,
         actions: [
@@ -137,12 +149,18 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
             label: 'Accueil',
           ),
           BottomNavigationBarItem(
-            icon: Icon(Icons.today_rounded),
-            label: 'Aujourd\'hui',
+            icon: Icon(Icons.calendar_view_week_rounded),
+            activeIcon: Icon(Icons.calendar_view_week),
+            label: 'Planning',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.history_rounded),
             label: 'Historique',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.people_outline_rounded),
+            activeIcon: Icon(Icons.people_rounded),
+            label: 'Patients',
           ),
           BottomNavigationBarItem(
             icon: Icon(Icons.person_outline),
@@ -278,74 +296,8 @@ class _MedecinDashboardScreenState extends State<MedecinDashboardScreen> {
     );
   }
 
-  // ── Onglet RDV du jour ─────────────────────────────────────────────
 
-  Widget _buildTodayList() {
-    return StreamBuilder<List<RendezVous>>(
-      stream: DoctorService.getRendezVousStream(_medecinId),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return Center(
-            child: Text(
-              'Erreur: ${snapshot.error}',
-              style: const TextStyle(color: Colors.red),
-            ),
-          );
-        }
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
 
-        final rdvList = snapshot.data ?? [];
-        final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-
-        final todayRdv =
-            rdvList
-                .where(
-                  (r) =>
-                      r.dateHeure != null &&
-                      DateFormat('yyyy-MM-dd').format(r.dateHeure!) == todayStr,
-                )
-                .toList()
-              ..sort((a, b) {
-                if (a.dateHeure == null) return 1;
-                if (b.dateHeure == null) return -1;
-                return a.dateHeure!.compareTo(b.dateHeure!);
-              });
-
-        if (todayRdv.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.event_busy_rounded,
-                  size: 64,
-                  color: AppColors.navyDark.withValues(alpha: 0.3),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  "Aucun rendez-vous aujourd'hui",
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: AppColors.navyDark.withValues(alpha: 0.5),
-                  ),
-                ),
-              ],
-            ),
-          );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(8, 16, 8, 24),
-          itemCount: todayRdv.length,
-          itemBuilder: (context, i) => _RdvCardWithPatient(
-            rdv: todayRdv[i],
-            getPatientName: _getPatientName,
-          ),
-        );
-      },
-    );
-  }
 
   // ── Déconnexion ────────────────────────────────────────────────────
 
