@@ -4,7 +4,7 @@ import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 import '../../services/secretaire_service.dart';
 import '../../services/doctor_service.dart';
-import 'register_screen.dart';
+import 'register_role_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 //  PALETTE (inchangée)
@@ -118,6 +118,22 @@ class _LoginScreenState extends State<LoginScreen>
       final user = _authService.currentUser;
       if (user == null) throw Exception('Utilisateur non trouvé');
 
+      // ── FLUX ADMIN (hardcoded) ────────────────────────────────────
+      if (user.email == 'admin@test.com' || 
+          (user.email == 'admin@erendezvous.com' && password == 'admin123')) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("🎯 Bienvenue administrateur ! Accès au tableau de bord"),
+              backgroundColor: Color(0xFF27AE60),
+              duration: Duration(seconds: 2),
+            ),
+          );
+          Navigator.pushReplacementNamed(context, '/admin-dashboard');
+        }
+        return;
+      }
+
       // ── FLUX SECRÉTAIRE (inchangé) ────────────────────────────────────
       final utilisateur = await _secretaireService
           .getUtilisateurByEmail(user.email!);
@@ -131,6 +147,13 @@ class _LoginScreenState extends State<LoginScreen>
             throw Exception('Ce compte secrétaire est désactivé');
           }
           if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text("👋 Bonjour ${utilisateur.prenom} ! Espace secrétaire"),
+                backgroundColor: const Color(0xFF27AE60),
+                duration: const Duration(seconds: 2),
+              ),
+            );
             Navigator.pushReplacementNamed(
               context, '/dashboard',
               arguments: secretaire.medecinId,
@@ -139,7 +162,7 @@ class _LoginScreenState extends State<LoginScreen>
           return;
         }
 
-        // ── FLUX MÉDECIN (inchangé) ───────────────────────────────────
+        // ── FLUX MÉDECIN (inchangé) ────────────────────────────────────
         final medecin = await DoctorService
             .getMedecinByUtilisateurId(utilisateur.id);
         if (medecin != null) {
@@ -350,7 +373,7 @@ class _LoginScreenState extends State<LoginScreen>
                       child: GestureDetector(
                         onTap: () => Navigator.push(context,
                             MaterialPageRoute(
-                                builder: (_) => const RegisterScreen())),
+                                builder: (_) => const RegisterRoleScreen())),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
