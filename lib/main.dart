@@ -20,6 +20,7 @@ import 'screens/medecin/medecin_dashboard_screen.dart';
 import 'screens/medecin/detail_rdv_screen.dart';
 import 'services/seed_data.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'screens/app_home_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -91,7 +92,7 @@ class AuthWrapper extends StatelessWidget {
         
         // Si l'utilisateur est connecté
         if (snapshot.hasData) {
-          return const AdminDashboardScreen();
+          return const AppHomePage();
         }
         
         // Si l'utilisateur n'est pas connecté, afficher l'onboarding
