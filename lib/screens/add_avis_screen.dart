@@ -40,16 +40,19 @@ class _AddAvisScreenState extends State<AddAvisScreen> {
       final user = FirebaseAuth.instance.currentUser!;
       final db = FirebaseFirestore.instance;
 
-      // Get patient name from utilisateur
+      // Références Firestore (structure exacte de la collection avis)
+      final medecinRef = db.collection('medecin').doc(widget.medecinId);
+      final patientRef = db.collection('utilisateur').doc(user.uid);
+
+      // Récupère le nom du patient depuis la collection utilisateur
       String patientNom = user.displayName ?? 'Patient';
       try {
         final q = await db
             .collection('utilisateur')
-            .where('email', isEqualTo: user.email)
-            .limit(1)
+            .doc(user.uid)
             .get();
-        if (q.docs.isNotEmpty) {
-          final d = q.docs.first.data();
+        if (q.exists) {
+          final d = q.data()!;
           final prenom = d['prenom'] ?? '';
           final nom = d['nom'] ?? '';
           if (prenom.isNotEmpty || nom.isNotEmpty) {
@@ -59,8 +62,8 @@ class _AddAvisScreenState extends State<AddAvisScreen> {
       } catch (_) {}
 
       await db.collection('avis').add({
-        'medecin_id': widget.medecinId,
-        'patient_id': user.uid,
+        'medecin_id': medecinRef,          // référence /medecin/{id}
+        'patient_id': patientRef,           // référence /utilisateur/{uid}
         'patientNom': patientNom,
         'note': _note,
         'commentaire': _commentaireController.text.trim(),

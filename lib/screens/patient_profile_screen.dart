@@ -67,24 +67,38 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
       _photoUrl = user.photoURL;
     });
 
-    // Try to fetch extra info from Firestore 'utilisateur' collection
+    // Cherche le document utilisateur par UID (l'uid Auth = id du doc Firestore)
     try {
-      final query = await _db
-          .collection('utilisateur')
-          .where('email', isEqualTo: user.email)
-          .limit(1)
-          .get();
+      // 1ère tentative : directement par uid
+      final docSnap = await _db.collection('utilisateur').doc(user.uid).get();
 
-      if (query.docs.isNotEmpty) {
-        final doc = query.docs.first;
-        final data = doc.data();
-        _userId = doc.id;
+      if (docSnap.exists) {
+        final data = docSnap.data()!;
+        _userId = docSnap.id; // == user.uid
         setState(() {
           _nomController.text = data['nom'] ?? '';
           _prenomController.text = data['prenom'] ?? '';
           _telephoneController.text = data['telephone'] ?? '';
           _adresseController.text = data['adresse'] ?? '';
         });
+      } else {
+        // Fallback : cherche par email
+        final query = await _db
+            .collection('utilisateur')
+            .where('email', isEqualTo: user.email)
+            .limit(1)
+            .get();
+        if (query.docs.isNotEmpty) {
+          final doc = query.docs.first;
+          final data = doc.data();
+          _userId = doc.id;
+          setState(() {
+            _nomController.text = data['nom'] ?? '';
+            _prenomController.text = data['prenom'] ?? '';
+            _telephoneController.text = data['telephone'] ?? '';
+            _adresseController.text = data['adresse'] ?? '';
+          });
+        }
       }
     } catch (e) {
       debugPrint('Error loading profile: $e');
@@ -148,30 +162,27 @@ class _PatientProfileScreenState extends State<PatientProfileScreen>
 
     setState(() => _isSavingInfo = true);
     try {
-      // Update display name in Firebase Auth
+      // Met à jour le displayName Firebase Auth
       final displayName =
           '${_prenomController.text.trim()} ${_nomController.text.trim()}';
-      await user.updateDisplayName(displayName);
+      await user.updateDisplayName(displayName.trim());
 
-      // Update in Firestore if we have the document id
-      if (_userId != null) {
-        await _db.collection('utilisateur').doc(_userId).update({
+      // Utlise l'uid comme ID du document (structure /utilisateur/{uid})
+      final docId = _userId ?? user.uid;
+      await _db.collection('utilisateur').doc(docId).set(
+        {
           'nom': _nomController.text.trim(),
           'prenom': _prenomController.text.trim(),
           'telephone': _telephoneController.text.trim(),
           'adresse': _adresseController.text.trim(),
-        });
-      } else {
-        // Try to create/upsert
-        await _db.collection('utilisateur').add({
           'email': _email,
-          'nom': _nomController.text.trim(),
-          'prenom': _prenomController.text.trim(),
-          'telephone': _telephoneController.text.trim(),
-          'adresse': _adresseController.text.trim(),
-          'role': 'patient',
-        });
-      }
+        },
+        SetOptions(merge: true), // crée le doc s'il n'existe pas
+      );
+
+      // Sauvegarde l'id pour les prochains appels
+      if (_userId == null) _userId = docId;
+
       _showSuccess('Informations mises à jour !');
     } catch (e) {
       _showError('Erreur lors de la mise à jour : $e');

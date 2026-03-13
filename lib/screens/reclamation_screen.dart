@@ -16,16 +16,7 @@ class ReclamationScreen extends StatefulWidget {
 class _ReclamationScreenState extends State<ReclamationScreen> {
   final _sujetController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String _selectedType = 'Comportement';
   bool _isSubmitting = false;
-
-  final List<String> _types = [
-    'Comportement',
-    'Retard / Annulation',
-    'Qualité de la consultation',
-    'Facturation',
-    'Autre',
-  ];
 
   @override
   void dispose() {
@@ -49,21 +40,34 @@ class _ReclamationScreenState extends State<ReclamationScreen> {
       final user = FirebaseAuth.instance.currentUser;
       final db = FirebaseFirestore.instance;
 
-      String patientNom = user?.displayName ?? 'Patient';
-      String patientEmail = user?.email ?? '';
+      // Vérifications préalables
+      if (user == null) {
+        _showError('Vous devez être connecté pour envoyer une réclamation.');
+        return;
+      }
 
-      await db.collection('reclamations').add({
-        'medecin_id': widget.doctor.id,
-        'medecinNom': widget.doctor.fullName,
-        'patient_id': user?.uid ?? '',
-        'patientNom': patientNom,
-        'patientEmail': patientEmail,
-        'type': _selectedType,
+      final medecinId = widget.doctor.id;
+      debugPrint('📝 Réclamation : uid=${ user.uid}, medecinId=$medecinId');
+
+      if (medecinId.isEmpty) {
+        _showError('Identifiant médecin introuvable. Impossible d\'envoyer la réclamation.');
+        return;
+      }
+
+      // Références Firestore (structure exacte de la collection)
+      final patientRef = db.collection('patient').doc(user.uid);
+      final medecinRef = db.collection('medecin').doc(medecinId);
+
+      final docRef = await db.collection('reclamations').add({
+        'patientId': patientRef,          // référence /patient/{uid}
+        'medecinId': medecinRef,          // référence /medecin/{id}
         'sujet': _sujetController.text.trim(),
         'description': _descriptionController.text.trim(),
         'statut': 'en_attente',
         'dateCreation': FieldValue.serverTimestamp(),
       });
+
+      debugPrint('✅ Réclamation enregistrée avec id: ${docRef.id}');
 
       if (mounted) {
         Navigator.pop(context);
@@ -77,8 +81,10 @@ class _ReclamationScreenState extends State<ReclamationScreen> {
           ),
         );
       }
-    } catch (e) {
-      _showError('Erreur lors de l\'envoi : $e');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Erreur réclamation: $e');
+      debugPrint('StackTrace: $stackTrace');
+      _showError('Erreur : ${e.toString().replaceAll('Exception: ', '')}');
     } finally {
       if (mounted) setState(() => _isSubmitting = false);
     }
@@ -176,57 +182,6 @@ class _ReclamationScreenState extends State<ReclamationScreen> {
                   ),
                 ],
               ),
-            ),
-
-            const SizedBox(height: 24),
-
-            // Type
-            _buildSectionTitle('Type de réclamation'),
-            const SizedBox(height: 10),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: _types.map((type) {
-                final isSelected = _selectedType == type;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedType = type),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppColors.navyDark
-                          : Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.navyDark
-                            : Colors.grey.withOpacity(0.2),
-                      ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: AppColors.navyDark.withOpacity(0.2),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
-                              ),
-                            ]
-                          : [],
-                    ),
-                    child: Text(
-                      type,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.grey[700],
-                        fontWeight: isSelected
-                            ? FontWeight.bold
-                            : FontWeight.w500,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
             ),
 
             const SizedBox(height: 24),
