@@ -24,6 +24,10 @@ class SeedData {
 
     // ── 1. Create Firebase Auth users ──────────────────────────────
     await _createAuthUser(
+      email: 'admin@test.com',
+      password: 'admin1234',
+    );
+    await _createAuthUser(
       email: 'secretaire@test.com',
       password: 'test1234',
     );
@@ -37,9 +41,19 @@ class SeedData {
     );
 
     // ── 2. Utilisateurs ────────────────────────────────────────────
+    final adminUserId = 'user_admin_01';
     final secUserId = 'user_secretaire_01';
     final medUserId = 'user_medecin_01';
     final patUserId = 'user_patient_01';
+
+    await _db.collection('utilisateur').doc(adminUserId).set({
+      'nom': 'Admin',
+      'prenom': 'System',
+      'email': 'admin@test.com',
+      'telephone': '0600000000',
+      'motDePasse': '',
+      'dateInscription': FieldValue.serverTimestamp(),
+    });
 
     await _db.collection('utilisateur').doc(secUserId).set({
       'nom': 'Benali',
@@ -282,7 +296,30 @@ class SeedData {
       });
     }
 
-    // ── 8. Sample rendez-vous ──────────────────────────────────────
+    // ── 8. Ajouter médecins en attente pour tests admin ────────────────
+    final medPendingId = 'med_pending_01';
+    await _db.collection('medecin').doc(medPendingId).set({
+      'cin': 'PENDING123',
+      'numeroDordre': 'ORD-PENDING-001',
+      'adresseCabinet': '123 Rue Test, Casablanca',
+      'ville': 'Casablanca',
+      'statutMedecin': 'en_attente', // Important pour tests admin
+      'dateCreation': FieldValue.serverTimestamp(), // Ajouter date de création
+      'cv': '',
+      'diplome': 'Doctorat en Test',
+      'certificatExercice': 'CE-PENDING-001',
+      'dureeConsultationMin': 30,
+      'tarifConsultation': 150.0,
+      'noteMoyenne': 0.0,
+      'biographie': 'Médecin en attente de validation pour tests admin.',
+      'anneesExperience': 5,
+      'consultationEnLigne': true,
+      'dateValidationCompte': null,
+      'utilisateur_id': medUserId,
+      'specialite_id': specId,
+    });
+
+    // ── 9. Sample rendez-vous ──────────────────────────────────────
     await _db.collection('rendezVous').add({
       'dateHeure': Timestamp.fromDate(
           DateTime(today.year, today.month, today.day, 9, 0)),
@@ -329,6 +366,7 @@ class SeedData {
     await _auth.signOut();
 
     debugPrint('✅ Test data seeded successfully!');
+    debugPrint('   📧 Admin: admin@test.com / admin1234');
     debugPrint('   📧 Login: secretaire@test.com / test1234');
   }
 

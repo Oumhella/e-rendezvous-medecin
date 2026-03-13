@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../theme/app_theme.dart';
 import 'login_screen.dart';
-import '../home_screen.dart';
+import '../app_home_page.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
@@ -38,7 +38,7 @@ class SplashScreen extends StatelessWidget {
           );
         }
         if (snapshot.hasData) {
-          return const HomeScreen();
+          return const AppHomePage();
         }
         return const LoginScreen();
       },
